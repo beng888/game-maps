@@ -8,6 +8,7 @@ const handler = NextAuth({
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: accounts,
+    // @ts-ignore-next-line
     sessionsTable: sessions,
   }),
   providers: [
