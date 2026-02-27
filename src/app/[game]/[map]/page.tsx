@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import MapSelector from "@/components/MapSelector";
+import MapDisplay from "@/components/MapDisplay";
 
 interface MapPageProps {
   params: Promise<{
@@ -14,7 +15,7 @@ interface MapPageProps {
 }
 
 export default async function MapPage({ params }: MapPageProps) {
-  // Await the params Promise first
+  // Await the params Promise
   const { game, map } = await params;
 
   // Get the game
@@ -48,25 +49,22 @@ export default async function MapPage({ params }: MapPageProps) {
             Home
           </Link>
           <span className="mx-2">/</span>
-          <span className="text-gray-600">{gameData.name}</span>
+          <Link href={`/${gameData.slug}`} className="text-blue-500 hover:text-blue-700">
+            {gameData.name}
+          </Link>
           <span className="mx-2">/</span>
           <span className="text-gray-600">{currentMap.name}</span>
         </div>
 
         <h1 className="text-3xl font-bold mb-2">{currentMap.name}</h1>
-        <p className="text-gray-600 mb-6">{currentMap.description}</p>
+        {currentMap.description && <p className="text-gray-600 mb-6">{currentMap.description}</p>}
 
         {/* Map Selector Component */}
         <MapSelector gameSlug={gameData.slug} currentMapSlug={currentMap.slug} maps={gameMaps} />
 
-        {/* Placeholder for map content */}
-        <div className="mt-8 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-          <h3 className="text-xl text-gray-500 mb-4">Map Placeholder</h3>
-          <p className="text-gray-400">
-            This is a placeholder for the {currentMap.name} map from {gameData.name}.
-            <br />
-            Map content will be added here in the future.
-          </p>
+        {/* Map Display Component */}
+        <div className="mt-8">
+          <MapDisplay gameSlug={gameData.slug} mapSlug={currentMap.slug} />
         </div>
       </div>
     </>
