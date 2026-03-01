@@ -18,7 +18,7 @@ export default function Home() {
   const [games, setGames] = useState<Game[]>([]);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (status === "unauthenticated" && process.env.NODE_ENV !== "development") {
       router.push("/");
     }
   }, [status, router]);
@@ -43,7 +43,7 @@ export default function Home() {
     );
   }
 
-  if (!session) {
+  if (!session || process.env.NODE_ENV === "development") {
     return (
       <>
         <NavBar />
