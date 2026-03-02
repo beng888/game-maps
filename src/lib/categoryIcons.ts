@@ -54,7 +54,20 @@ export const categoryIcons: Record<number, string> = {
   10847: "🔧", // Miscellaneous
   10853: "🏧", // SM Vending Machine
 
-  // Tools (Group 1807) - Empty in data
+  // Sierra Madre specific
+  10843: "🃏", // Card
+  10844: "💰", // Dean Stash
+
+  // Big MT specific
+  13760: "🚇", // Metro
+
+  // The Divide specific
+  10845: "🤖", // Eyebot Upgrade
+  10857: "📰", // RALPHIE Poster
+  10858: "💣", // Warhead
+
+  // Zion Canyon specific
+  10855: "🎒", // Survival Cache
 };
 
 // Default icon for unmapped categories

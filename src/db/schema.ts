@@ -55,5 +55,34 @@ export const maps = sqliteTable("maps", {
   name: text("name").notNull(),
   slug: text("slug").notNull(),
   description: text("description"),
-  mapData: text("mapData"), // JSON field for storing map data
+  mapData: text("mapData"),
 });
+
+// New tables for character tracking
+export const characters = sqliteTable("characters", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  gameId: integer("gameId")
+    .notNull()
+    .references(() => games.id),
+  name: text("name").notNull(),
+  level: integer("level").default(1),
+  createdAt: integer("createdAt", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const foundLocations = sqliteTable("found_locations", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  characterId: integer("characterId")
+    .notNull()
+    .references(() => characters.id, { onDelete: "cascade" }),
+  locationId: integer("locationId").notNull(), // The ID from the map data
+  mapId: integer("mapId")
+    .notNull()
+    .references(() => maps.id),
+  foundAt: integer("foundAt", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Unique constraint to prevent duplicates
+export const foundLocationsUnique = sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_found_locations_unique ON found_locations(characterId, locationId, mapId)`;

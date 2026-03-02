@@ -17,27 +17,22 @@ interface MapSelectorProps {
 }
 
 export default function MapSelector({ gameSlug, currentMapSlug, maps }: MapSelectorProps) {
-  const pathname = usePathname();
-
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-sm font-medium text-gray-700 mr-2">Select map:</span>
-      <div className="flex flex-wrap gap-2">
+      <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Map:</span>
+      <select
+        value={currentMapSlug}
+        onChange={(e) => {
+          window.location.href = `/${gameSlug}/${e.target.value}`;
+        }}
+        className="px-2 py-1 text-sm border rounded-md bg-white min-w-[120px]"
+      >
         {maps.map((map) => (
-          <Link
-            key={map.id}
-            href={`/${gameSlug}/${map.slug}`}
-            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-              map.slug === currentMapSlug
-                ? "bg-blue-500 text-white cursor-default"
-                : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-            }`}
-            aria-current={map.slug === currentMapSlug ? "page" : undefined}
-          >
+          <option key={map.id} value={map.slug}>
             {map.name}
-          </Link>
+          </option>
         ))}
-      </div>
+      </select>
     </div>
   );
 }

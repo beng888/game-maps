@@ -3,7 +3,6 @@ import { games, maps } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import NavBar from "@/components/NavBar";
-import MapSelector from "@/components/MapSelector";
 import MapViewWrapper from "@/components/MapViewWrapper";
 
 interface MapPageProps {
@@ -39,27 +38,22 @@ export default async function MapPage({ params, searchParams }: MapPageProps) {
     notFound();
   }
 
-  // Get all maps for this game for the selector
-  const gameMaps = await db.select().from(maps).where(eq(maps.gameId, gameData.id));
-
   // Parse map data
   const mapData = currentMap.mapData ? JSON.parse(currentMap.mapData) : null;
 
   return (
     <div className="h-screen flex flex-col">
       <NavBar />
-      <div className="bg-white shadow-sm z-10">
-        <div className="container mx-auto p-2">
-          <MapSelector gameSlug={gameData.slug} currentMapSlug={currentMap.slug} maps={gameMaps} />
-        </div>
-      </div>
       <div className="flex-1 relative">
         {mapData ? (
           <MapViewWrapper
             mapData={mapData}
             gameSlug={gameData.slug}
             mapSlug={currentMap.slug}
+            mapId={currentMap.id}
+            gameId={gameData.id}
             initialLocationId={locationId}
+            gameMaps={await db.select().from(maps).where(eq(maps.gameId, gameData.id))}
           />
         ) : (
           <div className="flex items-center justify-center h-full">
