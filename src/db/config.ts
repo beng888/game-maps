@@ -1,11 +1,12 @@
 import path from "path";
 
 export const getDbPath = () => {
-  // In production (Render), use a persistent path
+  // In production (Render), use a persistent path in /opt/render/project/src/data
   if (process.env.NODE_ENV === "production") {
-    // Use /var/data or a similar persistent volume
-    // You'll need to set this up in Render
-    return process.env.DATABASE_URL || "/var/data/sqlite.db";
+    // Ensure the directory exists
+    const dbPath = "/opt/render/project/src/data/sqlite.db";
+    console.log("Production database path:", dbPath);
+    return dbPath;
   }
 
   // In development, use local file

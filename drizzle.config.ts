@@ -8,7 +8,7 @@ export default {
   dbCredentials: {
     url:
       process.env.NODE_ENV === "production"
-        ? path.join("/opt/render/project/src", process.env.DATABASE_URL || "./src/db/sqlite.db")
+        ? "/opt/render/project/src/data/sqlite.db"
         : process.env.DATABASE_URL || "./src/db/sqlite.db",
   },
 } satisfies Config;

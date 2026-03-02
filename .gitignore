@@ -54,4 +54,5 @@ src/db/sqlite.db
 
 # Don't exclude the directory itself
 !src/db/
-!src/db/.gitkeep
+!src/db/.gitkeepdata/
+src/db/*.db
