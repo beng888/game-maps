@@ -15,6 +15,13 @@
       "when": 1772483583087,
       "tag": "0001_sparkling_spyke",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1772483682028,
+      "tag": "0002_jittery_mathemanic",
+      "breakpoints": true
     }
   ]
 }
