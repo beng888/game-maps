@@ -3,11 +3,11 @@ export const categoryIcons: Record<number, string> = {
   // Locations (Group 1800)
   10816: "🕳️", // Cave
   10818: "🌆", // City (New Vegas vibe)
-  10817: "🔥", // Encampment (campfire feel)
+  10817: "⛺", // Encampment (campfire feel)
   10821: "⚙️", // Factory
   10854: "🪖", // Military
   10822: "🗿", // Monument
-  13759: "🏜️", // Natural Landmark (Mojave desert)
+  13759: "🌄", // Natural Landmark (Mojave desert)
   13758: "🏢", // Office
   10815: "📌", // Point of Interest
   10823: "☢️", // Ruins (irradiated ruins)
@@ -32,11 +32,11 @@ export const categoryIcons: Record<number, string> = {
   10831: "📖", // Skill Book
   10851: "📘", // Skill Magazine
   10832: "❄️", // Snow Globe
-  10833: "🟡", // Star Bottle Cap
+  10833: "⭐", // Star Bottle Cap
 
   // Equipment (Group 1803)
   10887: "🥋", // Armor
-  10837: "💎", // Unique Armor
+  10837: "🛡️", // Unique Armor
   10836: "🗡️", // Unique Weapon
   10888: "🔫", // Weapon
 
@@ -51,7 +51,7 @@ export const categoryIcons: Record<number, string> = {
   // Other (Group 1806)
   10848: "🥚", // Easter Egg
   10856: "🪨", // Hollow Rock
-  10847: "📦", // Miscellaneous
+  10847: "🔧", // Miscellaneous
   10853: "🧃", // SM Vending Machine (Sierra Madre vending aesthetic)
 
   // Sierra Madre specific
@@ -63,8 +63,8 @@ export const categoryIcons: Record<number, string> = {
 
   // The Divide specific
   10845: "🤖", // Eyebot Upgrade
-  10857: "📌", // RALPHIE Poster
-  10858: "☢️", // Warhead
+  10857: "📰", // RALPHIE Poster
+  10858: "💣", // Warhead
 
   // Zion Canyon specific
   10855: "🎒", // Survival Cache
