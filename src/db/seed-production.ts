@@ -9,12 +9,6 @@ import { sql } from "drizzle-orm";
 async function seedProduction() {
   console.log("🌱 Checking if production seeding is needed...");
 
-  const existingGames = await db.select().from(games).limit(1);
-  if (existingGames.length > 0) {
-    console.log("✅ Database already has data, skipping seed.");
-    return;
-  }
-
   try {
     // Try to query games table to see if it exists
     await db.select().from(games).limit(1);

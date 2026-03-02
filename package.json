@@ -4,17 +4,17 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
     "db:studio": "drizzle-kit studio",
-    "db:generate": "drizzle-kit generate",
-    "db:seed": "tsx src/db/seed.ts",
-    "postinstall": "echo 'Skipping DB setup in postinstall'",
+    "postinstall": "if [ \"$NODE_ENV\" != \"production\" ]; then npm run db:generate && npm run db:migrate && npm run db:seed; else npm run db:ensure && npm run db:migrate && npm run db:seed:prod; fi",
     "db:ensure": "tsx src/db/ensure-db.ts",
+    "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed:prod": "tsx src/db/seed-production.ts",
-    "build": "next build",
-    "start": "./scripts/startup.sh"
+    "db:seed": "tsx src/db/seed.ts",
+    "db:seed:prod": "NODE_ENV=production tsx src/db/seed-production.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.1",
