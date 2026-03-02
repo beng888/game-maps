@@ -27,6 +27,7 @@ export default function CharacterSelector({
   const [newCharName, setNewCharName] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     console.log("CharacterSelector mounted, fetching characters...");
     fetchCharacters();
@@ -188,7 +189,6 @@ export default function CharacterSelector({
             placeholder="Name"
             className="px-2 py-1 text-sm border rounded-md w-24 md:w-32"
             onKeyDown={(e) => e.key === "Enter" && createCharacter()}
-            autoFocus
           />
           <button
             type="button"

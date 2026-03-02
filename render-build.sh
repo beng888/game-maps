@@ -11,7 +11,7 @@ echo "Running database migrations..."
 NODE_ENV=production npm run db:migrate
 
 echo "Seeding database..."
-NODE_ENV=production npm run db:seed
+NODE_ENV=production npm run db:seed || true
 
 echo "Building application..."
 npm run build

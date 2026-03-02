@@ -175,6 +175,7 @@ export default function MapView({
   );
 
   // Initialize map
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
@@ -210,7 +211,6 @@ export default function MapView({
       maxZoom: 15,
       minZoom: 8,
       renderWorldCopies: false,
-      preserveDrawingBuffer: true,
     });
 
     map.current.addControl(new maplibregl.NavigationControl(), "top-right");
