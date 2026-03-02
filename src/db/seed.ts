@@ -14,14 +14,6 @@ async function seed() {
     return;
   }
 
-  // First, check if we have any users (they should be created via OAuth)
-  const existingUsers = await db.select().from(users).limit(1);
-  if (existingUsers.length === 0) {
-    console.log("No users found. Please sign in first to create a user, then re-run seed.");
-    console.log("Skipping seed for now...");
-    return;
-  }
-
   console.log("Seeding game data...");
 
   // Insert Fallout New Vegas
