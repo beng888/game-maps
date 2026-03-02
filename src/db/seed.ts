@@ -10,75 +10,88 @@ async function seed() {
   await db.delete(maps);
   await db.delete(games);
 
-  // Insert Fallout New Vegas
+  // Insert Fallout New Vegas with tile configuration
   const [falloutNV] = await db
     .insert(games)
     .values({
       name: "Fallout New Vegas",
       slug: "fallout-new-vegas",
+      tileBaseUrl: "https://tiles.mapgenie.io/games",
+      defaultBounds: JSON.stringify([-1.4, 0, 0, 1.4]),
     })
     .returning();
 
   console.log("Added game:", falloutNV.name);
 
-  // Read all map data files
-  const mojaveDataPath = path.join(__dirname, "data", "mojave-wasteland.json");
-  const sierraMadreDataPath = path.join(__dirname, "data", "sierra-madre.json");
-  const zionCanyonDataPath = path.join(__dirname, "data", "zion-canyon.json");
-  const bigMtDataPath = path.join(__dirname, "data", "big-mt.json");
-  const theDivideDataPath = path.join(__dirname, "data", "the-divide.json");
-
-  const mojaveData = JSON.parse(fs.readFileSync(mojaveDataPath, "utf-8"));
-  const sierraMadreData = JSON.parse(fs.readFileSync(sierraMadreDataPath, "utf-8"));
-  const zionCanyonData = JSON.parse(fs.readFileSync(zionCanyonDataPath, "utf-8"));
-  const bigMtData = JSON.parse(fs.readFileSync(bigMtDataPath, "utf-8"));
-  const theDivideData = JSON.parse(fs.readFileSync(theDivideDataPath, "utf-8"));
-
-  // Insert all maps
-  await db.insert(maps).values([
+  // Map configurations
+  const mapConfigs = [
     {
-      gameId: falloutNV.id,
-      name: "Mojave Wasteland",
       slug: "mojave-wasteland",
+      name: "Mojave Wasteland",
+      tilePath: "fallout-new-vegas/mojave-wasteland/default-v2",
+      defaultCenter: JSON.stringify([-0.79407843012208, 0.70144020169235]),
+      defaultZoom: 11,
       description: "The main desert region of the Mojave Wasteland",
-      mapData: JSON.stringify(mojaveData),
+      file: "mojave-wasteland.json",
     },
     {
-      gameId: falloutNV.id,
-      name: "Sierra Madre",
       slug: "sierra-madre",
+      name: "Sierra Madre",
+      tilePath: "fallout-new-vegas/sierra-madre/default-v1",
+      defaultCenter: JSON.stringify([-0.8593568483393, 0.71132050351143]),
+      defaultZoom: 10,
       description: "The treacherous Sierra Madre casino and surrounding area",
-      mapData: JSON.stringify(sierraMadreData),
+      file: "sierra-madre.json",
     },
     {
-      gameId: falloutNV.id,
-      name: "Zion Canyon",
       slug: "zion-canyon",
+      name: "Zion Canyon",
+      tilePath: "fallout-new-vegas/zion-canyon/default-v1",
+      defaultCenter: JSON.stringify([-0.80437288889794, 0.64827011938249]),
+      defaultZoom: 11,
       description: "The beautiful and dangerous Zion National Park",
-      mapData: JSON.stringify(zionCanyonData),
+      file: "zion-canyon.json",
     },
     {
-      gameId: falloutNV.id,
-      name: "Big MT",
       slug: "big-mt",
+      name: "Big MT",
+      tilePath: "fallout-new-vegas/big-mt/default-v1",
+      defaultCenter: JSON.stringify([-0.82521207715246, 0.72249280811974]),
+      defaultZoom: 11,
       description: "The Big Empty research facility",
-      mapData: JSON.stringify(bigMtData),
+      file: "big-mt.json",
     },
     {
-      gameId: falloutNV.id,
-      name: "The Divide",
       slug: "the-divide",
+      name: "The Divide",
+      tilePath: "fallout-new-vegas/the-divide/default-v1",
+      defaultCenter: JSON.stringify([-0.8043821638268, 0.74278153843068]),
+      defaultZoom: 12,
       description: "The destructive and mysterious Divide",
-      mapData: JSON.stringify(theDivideData),
+      file: "the-divide.json",
     },
-  ]);
+  ];
 
-  console.log("All maps seeded successfully!");
-  console.log("- Mojave Wasteland");
-  console.log("- Sierra Madre");
-  console.log("- Zion Canyon");
-  console.log("- Big MT");
-  console.log("- The Divide");
+  // Insert each map with its data
+  for (const config of mapConfigs) {
+    const dataPath = path.join(__dirname, "data", config.file);
+    const mapData = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
+
+    await db.insert(maps).values({
+      gameId: falloutNV.id,
+      name: config.name,
+      slug: config.slug,
+      description: config.description,
+      tilePath: config.tilePath,
+      defaultCenter: config.defaultCenter,
+      defaultZoom: config.defaultZoom,
+      mapData: JSON.stringify(mapData),
+    });
+
+    console.log(`Added map: ${config.name}`);
+  }
+
+  console.log("Database seeded successfully!");
 }
 
 seed().catch(console.error);

@@ -8,7 +8,12 @@ import { categoryIcons, defaultIcon } from "@/lib/categoryIcons";
 interface MapViewProps {
   mapData: any;
   gameSlug: string;
+  gameBounds: [number, number, number, number] | null;
+  tileBaseUrl: string;
   mapSlug: string;
+  tilePath: string;
+  mapCenter: [number, number] | null;
+  mapZoom: number;
   mapId: number;
   initialLocationId?: string;
   foundLocations?: Set<string>;
@@ -21,7 +26,12 @@ interface MapViewProps {
 export default function MapView({
   mapData,
   gameSlug,
+  gameBounds,
+  tileBaseUrl,
   mapSlug,
+  tilePath,
+  mapCenter,
+  mapZoom,
   mapId,
   initialLocationId,
   foundLocations = new Set(),
@@ -39,11 +49,27 @@ export default function MapView({
   const initialLocationHandled = useRef(false);
   const selectedCharacterIdRef = useRef(selectedCharacterId);
 
+  // Update ref when selectedCharacterId changes
   useEffect(() => {
     selectedCharacterIdRef.current = selectedCharacterId;
   }, [selectedCharacterId]);
 
-  // Helper to focus on a location instantly
+  // Helper to get tile URL based on game and map config
+  const getTileUrl = useCallback(() => {
+    return `${tileBaseUrl}/${tilePath}/{z}/{y}/{x}.jpg`;
+  }, [tileBaseUrl, tilePath]);
+
+  // Helper to get map bounds
+  const getMapBounds = useCallback(() => {
+    return gameBounds || [-1.4, 0, 0, 1.4];
+  }, [gameBounds]);
+
+  // Helper to get map center
+  const getMapCenter = useCallback(() => {
+    return mapCenter || [-0.8, 0.7];
+  }, [mapCenter]);
+
+  // Helper to focus on a location
   const focusOnLocation = useCallback(
     (locationId: string) => {
       if (!map.current) return;
@@ -102,17 +128,17 @@ export default function MapView({
   useEffect(() => {
     if (!map.current || markersRef.current.size === 0) return;
 
-    markersRef.current.forEach(({ marker, element }, locationId) => {
+    markersRef.current.forEach(({ element }, locationId) => {
       const location = mapData.locations.find((l: any) => l.id.toString() === locationId);
       if (location) {
         const shouldShow =
           enabledCategories.size === 0 || enabledCategories.has(location.category_id);
-        marker.getElement().style.display = shouldShow ? "flex" : "none";
+        element.style.display = shouldShow ? "flex" : "none";
       }
     });
   }, [enabledCategories, mapData.locations]);
 
-  // Update marker opacity when foundLocations changes
+  // Update marker opacity when foundLocations changes (without rerendering)
   useEffect(() => {
     if (!map.current || markersRef.current.size === 0) return;
 
@@ -125,52 +151,12 @@ export default function MapView({
     });
   }, [foundLocations]);
 
-  const getTileUrl = (mapSlug: string) => {
-    const tilePaths: Record<string, string> = {
-      "mojave-wasteland": "fallout-new-vegas/mojave-wasteland/default-v2",
-      "sierra-madre": "fallout-new-vegas/sierra-madre/default-v1",
-      "zion-canyon": "fallout-new-vegas/zion-canyon/default-v1",
-      "big-mt": "fallout-new-vegas/big-mt/default-v1",
-      "the-divide": "fallout-new-vegas/the-divide/default-v1",
-    };
-
-    const path = tilePaths[mapSlug];
-    if (!path) {
-      console.warn(`No tile path found for map: ${mapSlug}, using default`);
-      return `https://tiles.mapgenie.io/games/fallout-new-vegas/mojave-wasteland/default-v2/{z}/{y}/{x}.jpg`;
-    }
-
-    return `https://tiles.mapgenie.io/games/${path}/{z}/{y}/{x}.jpg`;
-  };
-
-  const getMapCenter = (mapSlug: string) => {
-    const centers: Record<string, [number, number]> = {
-      "mojave-wasteland": [-0.79407843012208, 0.70144020169235],
-      "sierra-madre": [-0.8593568483393, 0.71132050351143],
-      "zion-canyon": [-0.80437288889794, 0.64827011938249],
-      "big-mt": [-0.82521207715246, 0.72249280811974],
-      "the-divide": [-0.8043821638268, 0.74278153843068],
-    };
-    return centers[mapSlug] || centers["mojave-wasteland"];
-  };
-
-  const getMapZoom = (mapSlug: string) => {
-    const zooms: Record<string, number> = {
-      "mojave-wasteland": 11,
-      "sierra-madre": 10,
-      "zion-canyon": 11,
-      "big-mt": 11,
-      "the-divide": 12,
-    };
-    return zooms[mapSlug] || 11;
-  };
-
+  // Initialize map - this runs only once
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    const bounds: [number, number, number, number] = [-1.4, 0, 0, 1.4];
-    const center = getMapCenter(mapSlug);
-    const zoom = getMapZoom(mapSlug);
+    const bounds = getMapBounds();
+    const center = getMapCenter();
 
     map.current = new maplibregl.Map({
       container: mapContainer.current,
@@ -179,9 +165,7 @@ export default function MapView({
         sources: {
           "raster-tiles": {
             type: "raster",
-            tiles: [
-              getTileUrl(mapSlug), // Use dynamic function instead of hardcoded URL
-            ],
+            tiles: [getTileUrl()],
             tileSize: 256,
             minzoom: 8,
             maxzoom: 15,
@@ -198,7 +182,7 @@ export default function MapView({
       },
       maxBounds: bounds,
       center: center,
-      zoom: zoom,
+      zoom: mapZoom,
       maxZoom: 15,
       minZoom: 8,
       renderWorldCopies: false,
@@ -207,9 +191,10 @@ export default function MapView({
 
     map.current.addControl(new maplibregl.NavigationControl(), "top-right");
 
+    // Suppress 403 errors
     map.current.on("error", (e) => {
       if (e.error && e.error.status === 403) {
-        e?.preventDefault?.();
+        e.preventDefault();
       }
     });
 
@@ -243,8 +228,6 @@ export default function MapView({
           el.dataset.media = JSON.stringify(location.media.map((m: any) => m.url));
         }
 
-        el.dataset.selectedCharacterId = selectedCharacterId?.toString() || "";
-
         el.onclick = (e) => {
           e.stopPropagation();
           const target = e.currentTarget as HTMLElement;
@@ -256,10 +239,13 @@ export default function MapView({
           const media = target.dataset.media;
           const categoryId = parseInt(target.dataset.category || "0");
           const category = mapData.categories[categoryId];
+          const locationId = target.dataset.id || "";
           const currentFound = foundLocations.has(locationId);
           const hasSelectedChar = selectedCharacterIdRef.current !== null;
 
+          // Format description with proper links
           const formatDescription = (text: string) => {
+            // Replace MapGenie URLs with internal links
             let formatted = text.replace(
               /\[([^\]]+)\]\(https:\/\/mapgenie\.io([^)]+)\)/g,
               (match, linkText, urlPath) => {
@@ -267,7 +253,10 @@ export default function MapView({
               },
             );
 
+            // Handle bold text
             formatted = formatted.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+            // Handle line breaks
             formatted = formatted.replace(/\n/g, "<br/>");
 
             return formatted;
@@ -296,20 +285,20 @@ export default function MapView({
           // Add found checkbox if character is selected
           if (hasSelectedChar && onFoundToggle) {
             html += `
-            <div class="popup-found">
-              <label class="found-checkbox">
-                <input type="checkbox" ${currentFound ? "checked" : ""} data-location-id="${locationId}" />
-                <span>Found</span>
-              </label>
-            </div>
-          `;
+              <div class="popup-found">
+                <label class="found-checkbox">
+                  <input type="checkbox" ${currentFound ? "checked" : ""} data-location-id="${locationId}" />
+                  <span>Found</span>
+                </label>
+              </div>
+            `;
           } else if (category) {
             html += `
-            <div class="popup-category">
-              <span>${categoryIcons[categoryId] || "📍"}</span>
-              <span>${category.title}</span>
-            </div>
-          `;
+              <div class="popup-category">
+                <span>${categoryIcons[categoryId] || "📍"}</span>
+                <span>${category.title}</span>
+              </div>
+            `;
           }
 
           html += "</div>";
@@ -325,16 +314,17 @@ export default function MapView({
             .addTo(map.current!);
 
           // Add checkbox handler
-          if (selectedCharacterId && onFoundToggle) {
+          if (hasSelectedChar && onFoundToggle) {
             const checkbox = document.querySelector(`.found-checkbox input`);
             checkbox?.addEventListener("change", (e) => {
+              e.stopPropagation();
               const input = e.target as HTMLInputElement;
               const newFound = input.checked;
 
-              // Update marker class immediately
+              // Update marker class immediately (this doesn't cause a rerender)
               target.classList.toggle("found", newFound);
 
-              // Call the toggle handler (this won't rerender the map now)
+              // Call the toggle handler (this updates state but won't rerender the map)
               onFoundToggle(locationId, newFound);
             });
           }
@@ -357,7 +347,7 @@ export default function MapView({
         markersRef.current.set(locationId, { marker, element: el });
       });
 
-      // Handle initial location if provided and not yet handled
+      // Handle initial location if provided
       if (initialLocationId && !initialLocationHandled.current) {
         setTimeout(() => {
           focusOnLocation(initialLocationId);
@@ -373,8 +363,11 @@ export default function MapView({
         map.current = null;
       }
       markersRef.current.clear();
+      initialLocationHandled.current = false;
     };
-  }, [mapData, gameSlug, mapSlug]); // Only recreate map when these change
+    // Empty dependency array ensures this runs only once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return <div ref={mapContainer} className="absolute inset-0 w-full h-full" />;
 }

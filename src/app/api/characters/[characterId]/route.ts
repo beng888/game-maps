@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { characters, foundLocations, users } from "@/db/schema";
+import { characters, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
@@ -21,7 +21,7 @@ export async function DELETE(
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // Verify character belongs to user and delete it (cascade will delete foundLocations)
+  // Verify character belongs to user and delete it
   const [deletedChar] = await db
     .delete(characters)
     .where(and(eq(characters.id, parseInt(characterId)), eq(characters.userId, user.id)))

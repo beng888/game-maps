@@ -45,6 +45,9 @@ export const games = sqliteTable("games", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   slug: text("slug").unique().notNull(),
+  tileBaseUrl: text("tile_base_url").notNull(), // Base URL for tiles
+  defaultBounds: text("default_bounds"), // JSON string of bounds
+  createdAt: integer("createdAt", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const maps = sqliteTable("maps", {
@@ -55,10 +58,13 @@ export const maps = sqliteTable("maps", {
   name: text("name").notNull(),
   slug: text("slug").notNull(),
   description: text("description"),
-  mapData: text("mapData"),
+  tilePath: text("tile_path").notNull(), // Path relative to game base URL
+  defaultCenter: text("default_center"), // JSON string [lng, lat]
+  defaultZoom: integer("default_zoom").default(11),
+  mapData: text("mapData"), // JSON field for storing map data
+  createdAt: integer("createdAt", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`),
 });
 
-// New tables for character tracking
 export const characters = sqliteTable("characters", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   userId: text("userId")

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import MapView from "./MapView";
 import MapSelector from "./MapSelector";
@@ -10,7 +10,12 @@ import CategoryFilter from "./CategoryFilter";
 interface MapViewWrapperProps {
   mapData: any;
   gameSlug: string;
+  gameBounds: [number, number, number, number] | null;
+  tileBaseUrl: string;
   mapSlug: string;
+  tilePath: string;
+  mapCenter: [number, number] | null;
+  mapZoom: number;
   mapId: number;
   gameId: number;
   gameMaps: any[];
@@ -20,7 +25,12 @@ interface MapViewWrapperProps {
 export default function MapViewWrapper({
   mapData,
   gameSlug,
+  gameBounds,
+  tileBaseUrl,
   mapSlug,
+  tilePath,
+  mapCenter,
+  mapZoom,
   mapId,
   gameId,
   gameMaps,
@@ -41,6 +51,7 @@ export default function MapViewWrapper({
   const handleFoundToggle = async (locationId: string, found: boolean) => {
     if (!selectedCharacterId) return;
 
+    // Update local state (this won't rerender the map because we use direct DOM manipulation)
     setFoundLocations((prev) => {
       const newSet = new Set(prev);
       if (found) {
@@ -51,6 +62,7 @@ export default function MapViewWrapper({
       return newSet;
     });
 
+    // Save to database
     try {
       await fetch(`/api/characters/${selectedCharacterId}/found`, {
         method: "POST",
@@ -63,6 +75,7 @@ export default function MapViewWrapper({
       });
     } catch (error) {
       console.error("Failed to save found status:", error);
+      // Revert on error
       setFoundLocations((prev) => {
         const newSet = new Set(prev);
         if (!found) {
@@ -110,7 +123,12 @@ export default function MapViewWrapper({
       <MapView
         mapData={mapData}
         gameSlug={gameSlug}
+        gameBounds={gameBounds}
+        tileBaseUrl={tileBaseUrl}
         mapSlug={mapSlug}
+        tilePath={tilePath}
+        mapCenter={mapCenter}
+        mapZoom={mapZoom}
         mapId={mapId}
         initialLocationId={initialLocationId}
         foundLocations={foundLocations}

@@ -38,8 +38,15 @@ export default async function MapPage({ params, searchParams }: MapPageProps) {
     notFound();
   }
 
+  // Get all maps for this game for the selector
+  const gameMaps = await db.select().from(maps).where(eq(maps.gameId, gameData.id));
+
   // Parse map data
   const mapData = currentMap.mapData ? JSON.parse(currentMap.mapData) : null;
+
+  // Parse JSON configs
+  const gameBounds = gameData.defaultBounds ? JSON.parse(gameData.defaultBounds) : null;
+  const mapCenter = currentMap.defaultCenter ? JSON.parse(currentMap.defaultCenter) : null;
 
   return (
     <div className="h-screen flex flex-col">
@@ -49,11 +56,16 @@ export default async function MapPage({ params, searchParams }: MapPageProps) {
           <MapViewWrapper
             mapData={mapData}
             gameSlug={gameData.slug}
+            gameBounds={gameBounds}
+            tileBaseUrl={gameData.tileBaseUrl}
             mapSlug={currentMap.slug}
+            tilePath={currentMap.tilePath}
+            mapCenter={mapCenter}
+            mapZoom={currentMap.defaultZoom || 11}
             mapId={currentMap.id}
             gameId={gameData.id}
+            gameMaps={gameMaps}
             initialLocationId={locationId}
-            gameMaps={await db.select().from(maps).where(eq(maps.gameId, gameData.id))}
           />
         ) : (
           <div className="flex items-center justify-center h-full">

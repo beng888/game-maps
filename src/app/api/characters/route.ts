@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { characters, foundLocations, users } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { characters, users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   const [newChar] = await db
     .insert(characters)
     .values({
-      userId: user.id, // Use the user's UUID, not email
+      userId: user.id,
       gameId,
       name,
     })
