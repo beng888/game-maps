@@ -8,11 +8,11 @@
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
+    "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
-    "postinstall": "mkdir -p src/db && npm run db:migrate"
+    "postinstall": "NODE_ENV=production npm run db:migrate"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.1",

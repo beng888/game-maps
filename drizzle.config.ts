@@ -6,9 +6,6 @@ export default {
   out: "./drizzle",
   dialect: "sqlite",
   dbCredentials: {
-    url:
-      process.env.NODE_ENV === "production"
-        ? "/opt/render/project/src/src/db/sqlite.db"
-        : "./src/db/sqlite.db",
+    url: "/opt/render/project/src/src/db/sqlite.db",
   },
 } satisfies Config;
