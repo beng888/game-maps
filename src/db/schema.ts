@@ -1,10 +1,11 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
 
 export const users = sqliteTable("user", {
   id: text("id")
     .primaryKey()
-    .default(sql`(lower(hex(randomblob(16))))`),
+    .$defaultFn(() => uuidv4()),
   name: text("name"),
   email: text("email").unique(),
   emailVerified: integer("emailVerified", { mode: "timestamp" }),
@@ -14,7 +15,7 @@ export const users = sqliteTable("user", {
 export const accounts = sqliteTable("account", {
   id: text("id")
     .primaryKey()
-    .default(sql`(lower(hex(randomblob(16))))`),
+    .$defaultFn(() => uuidv4()),
   userId: text("userId")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -33,11 +34,17 @@ export const accounts = sqliteTable("account", {
 export const sessions = sqliteTable("session", {
   id: text("id")
     .primaryKey()
-    .default(sql`(lower(hex(randomblob(16))))`),
-  sessionToken: text("sessionToken").unique().notNull(),
+    .$defaultFn(() => uuidv4()),
+  sessionToken: text("sessionToken").notNull().unique(),
   userId: text("userId")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  expires: integer("expires", { mode: "timestamp" }).notNull(),
+});
+
+export const verificationTokens = sqliteTable("verificationToken", {
+  identifier: text("identifier").notNull(),
+  token: text("token").notNull(),
   expires: integer("expires", { mode: "timestamp" }).notNull(),
 });
 
@@ -45,8 +52,8 @@ export const games = sqliteTable("games", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   slug: text("slug").unique().notNull(),
-  tileBaseUrl: text("tile_base_url").notNull(), // Base URL for tiles
-  defaultBounds: text("default_bounds"), // JSON string of bounds
+  tileBaseUrl: text("tile_base_url").notNull(),
+  defaultBounds: text("default_bounds"),
   createdAt: integer("createdAt", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -58,10 +65,10 @@ export const maps = sqliteTable("maps", {
   name: text("name").notNull(),
   slug: text("slug").notNull(),
   description: text("description"),
-  tilePath: text("tile_path").notNull(), // Path relative to game base URL
-  defaultCenter: text("default_center"), // JSON string [lng, lat]
+  tilePath: text("tile_path").notNull(),
+  defaultCenter: text("default_center"),
   defaultZoom: integer("default_zoom").default(11),
-  mapData: text("mapData"), // JSON field for storing map data
+  mapData: text("mapData"),
   createdAt: integer("createdAt", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -83,7 +90,7 @@ export const foundLocations = sqliteTable("found_locations", {
   characterId: integer("characterId")
     .notNull()
     .references(() => characters.id, { onDelete: "cascade" }),
-  locationId: integer("locationId").notNull(), // The ID from the map data
+  locationId: integer("locationId").notNull(),
   mapId: integer("mapId")
     .notNull()
     .references(() => maps.id),
