@@ -49,12 +49,3 @@ next-env.d.ts
 src/db/sqlite.db
 src/db/sqlite.db-*
 src/db/sqlite.db-journal
-
-# Database files
-data/
-src/db/*.db
-src/db/*.sqlite
-!src/db/schema.ts
-!src/db/index.ts
-!src/db/config.ts
-!src/db/seed.ts

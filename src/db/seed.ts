@@ -1,15 +1,24 @@
+/** biome-ignore-all assist/source/organizeImports: <> */
 import { db } from "./index";
-import { games, maps } from "./schema";
+import { games, maps, users } from "./schema";
 import fs from "fs";
 import path from "path";
 
 async function seed() {
   console.log("Seeding database...");
 
-  // Check if we already have games to avoid duplicate seeding
+  // Check if we already have data to avoid duplicate seeding
   const existingGames = await db.select().from(games).limit(1);
   if (existingGames.length > 0) {
-    console.log("Games already exist, skipping seed...");
+    console.log("Database already seeded, skipping...");
+    return;
+  }
+
+  // First, check if we have any users (they should be created via OAuth)
+  const existingUsers = await db.select().from(users).limit(1);
+  if (existingUsers.length === 0) {
+    console.log("No users found. Please sign in first to create a user, then re-run seed.");
+    console.log("Skipping seed for now...");
     return;
   }
 
