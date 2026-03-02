@@ -50,7 +50,6 @@ export default async function MapPage({ params, searchParams }: MapPageProps) {
 
   return (
     <div className="h-screen flex flex-col">
-      <NavBar />
       <div className="flex-1 relative">
         {mapData ? (
           <MapViewWrapper

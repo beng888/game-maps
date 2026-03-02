@@ -43,7 +43,7 @@ export default function Home() {
     );
   }
 
-  if (!session || process.env.NODE_ENV === "development") {
+  if (!session) {
     return (
       <>
         <NavBar />

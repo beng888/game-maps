@@ -28,6 +28,7 @@ export default function CharacterSelector({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("CharacterSelector mounted, fetching characters...");
     fetchCharacters();
   }, []);
 
@@ -35,12 +36,14 @@ export default function CharacterSelector({
     try {
       const res = await fetch("/api/characters");
       const data = await res.json();
+      console.log("Characters loaded:", data);
       setCharacters(data);
       if (data.length > 0) {
         // Auto-select the first character
+        console.log("Auto-selecting character:", data[0].id);
         setSelectedCharId(data[0].id);
         onCharacterSelect(data[0].id);
-        loadFoundLocations(data[0].id);
+        await loadFoundLocations(data[0].id);
       } else {
         onCharacterSelect(null);
         onFoundLocationsLoad(new Set());
@@ -54,22 +57,30 @@ export default function CharacterSelector({
 
   const loadFoundLocations = async (charId: number) => {
     try {
+      console.log("Loading found locations for character:", charId, "map:", currentMapId);
       const res = await fetch(`/api/characters/${charId}/found`);
       const data = await res.json();
+      console.log("Found locations loaded:", data);
+
+      // Filter for current map
       const foundSet = new Set(
         data.filter((f: any) => f.mapId === currentMapId).map((f: any) => f.locationId.toString()),
       );
+
+      console.log("Filtered found locations for current map:", Array.from(foundSet));
       onFoundLocationsLoad(foundSet);
     } catch (error) {
       console.error("Failed to load found locations:", error);
+      onFoundLocationsLoad(new Set());
     }
   };
 
-  const handleCharacterChange = (charId: string) => {
+  const handleCharacterChange = async (charId: string) => {
     const id = parseInt(charId);
+    console.log("Character selected:", id);
     setSelectedCharId(id);
     onCharacterSelect(id);
-    loadFoundLocations(id);
+    await loadFoundLocations(id);
   };
 
   const createCharacter = async () => {
@@ -84,10 +95,11 @@ export default function CharacterSelector({
 
       if (res.ok) {
         const newChar = await res.json();
+        console.log("Character created:", newChar);
         setCharacters([...characters, newChar]);
         setSelectedCharId(newChar.id);
         onCharacterSelect(newChar.id);
-        loadFoundLocations(newChar.id);
+        await loadFoundLocations(newChar.id);
         setShowNewCharInput(false);
         setNewCharName("");
       }
@@ -112,7 +124,7 @@ export default function CharacterSelector({
           // Select the first remaining character
           setSelectedCharId(newCharacters[0].id);
           onCharacterSelect(newCharacters[0].id);
-          loadFoundLocations(newCharacters[0].id);
+          await loadFoundLocations(newCharacters[0].id);
         } else {
           setSelectedCharId(null);
           onCharacterSelect(null);

@@ -19,7 +19,9 @@ interface MapSelectorProps {
 export default function MapSelector({ gameSlug, currentMapSlug, maps }: MapSelectorProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Map:</span>
+      <span className="text-sm font-medium text-gray-700 whitespace-nowrap hidden md:block">
+        Map:
+      </span>
       <select
         value={currentMapSlug}
         onChange={(e) => {

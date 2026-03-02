@@ -274,14 +274,17 @@ body {
 
 /* Found marker with lower opacity */
 .map-marker.found {
-  opacity: 0.3;
-  filter: grayscale(0.7);
-  transition: opacity 0.2s ease;
+  opacity: 0.7;
+  filter: grayscale(0.5) sepia(0.5) hue-rotate(90deg);
+  transition: all 0.2s ease;
+  box-shadow: 0 0 0 2px rgba(0, 128, 0, 0.3);
 }
 
 .map-marker.found:hover {
-  opacity: 0.8;
-  filter: grayscale(0.3);
+  opacity: 1;
+  filter: grayscale(0.2) sepia(0.2) hue-rotate(90deg);
+  transform: scale(1.2);
+  box-shadow: 0 0 0 2px rgba(0, 255, 0, 0.5);
 }
 
 /* Mobile responsiveness */

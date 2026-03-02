@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { categoryIcons, defaultIcon } from "@/lib/categoryIcons";
@@ -47,14 +47,64 @@ export default function MapView({
     new Map(),
   );
   const initialLocationHandled = useRef(false);
+  const [mapReady, setMapReady] = useState(false);
   const selectedCharacterIdRef = useRef(selectedCharacterId);
+  const onFoundToggleRef = useRef(onFoundToggle);
+  const foundLocationsRef = useRef(foundLocations);
 
-  // Update ref when selectedCharacterId changes
+  // Update refs when props change
   useEffect(() => {
     selectedCharacterIdRef.current = selectedCharacterId;
   }, [selectedCharacterId]);
 
-  // Helper to get tile URL based on game and map config
+  useEffect(() => {
+    onFoundToggleRef.current = onFoundToggle;
+  }, [onFoundToggle]);
+
+  useEffect(() => {
+    foundLocationsRef.current = foundLocations;
+  }, [foundLocations]);
+
+  // Single effect to update marker opacity when foundLocations changes
+  useEffect(() => {
+    if (!mapReady || markersRef.current.size === 0) {
+      console.log("Map not ready or no markers yet, skipping opacity update");
+      return;
+    }
+
+    console.log("Updating marker opacity for", foundLocations.size, "found locations");
+    let updatedCount = 0;
+    markersRef.current.forEach(({ element }, locationId) => {
+      if (foundLocations.has(locationId)) {
+        if (!element.classList.contains("found")) {
+          element.classList.add("found");
+          updatedCount++;
+        }
+      } else {
+        if (element.classList.contains("found")) {
+          element.classList.remove("found");
+          updatedCount++;
+        }
+      }
+    });
+    console.log(`Updated ${updatedCount} markers`);
+  }, [foundLocations, mapReady]);
+
+  // Update marker visibility when enabledCategories changes
+  useEffect(() => {
+    if (!mapReady || markersRef.current.size === 0) return;
+
+    markersRef.current.forEach(({ element }, locationId) => {
+      const location = mapData.locations.find((l: any) => l.id.toString() === locationId);
+      if (location) {
+        const shouldShow =
+          enabledCategories.size === 0 || enabledCategories.has(location.category_id);
+        element.style.display = shouldShow ? "flex" : "none";
+      }
+    });
+  }, [enabledCategories, mapData.locations, mapReady]);
+
+  // Helper to get tile URL
   const getTileUrl = useCallback(() => {
     return `${tileBaseUrl}/${tilePath}/{z}/{y}/{x}.jpg`;
   }, [tileBaseUrl, tilePath]);
@@ -124,37 +174,11 @@ export default function MapView({
     [onNavigateToMap, focusOnLocation],
   );
 
-  // Update marker visibility when enabledCategories changes
-  useEffect(() => {
-    if (!map.current || markersRef.current.size === 0) return;
-
-    markersRef.current.forEach(({ element }, locationId) => {
-      const location = mapData.locations.find((l: any) => l.id.toString() === locationId);
-      if (location) {
-        const shouldShow =
-          enabledCategories.size === 0 || enabledCategories.has(location.category_id);
-        element.style.display = shouldShow ? "flex" : "none";
-      }
-    });
-  }, [enabledCategories, mapData.locations]);
-
-  // Update marker opacity when foundLocations changes (without rerendering)
-  useEffect(() => {
-    if (!map.current || markersRef.current.size === 0) return;
-
-    markersRef.current.forEach(({ element }, locationId) => {
-      if (foundLocations.has(locationId)) {
-        element.classList.add("found");
-      } else {
-        element.classList.remove("found");
-      }
-    });
-  }, [foundLocations]);
-
-  // Initialize map - this runs only once
+  // Initialize map
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
+    console.log("Initializing map...");
     const bounds = getMapBounds();
     const center = getMapCenter();
 
@@ -194,13 +218,14 @@ export default function MapView({
     // Suppress 403 errors
     map.current.on("error", (e) => {
       if (e.error && e.error.status === 403) {
-        e.preventDefault();
+        e.preventDefault?.();
       }
     });
 
     map.current.on("load", () => {
       if (!map.current) return;
 
+      console.log("Map loaded, adding markers...");
       markersRef.current.clear();
 
       mapData.locations.forEach((location: any) => {
@@ -208,7 +233,8 @@ export default function MapView({
         const lng = parseFloat(location.longitude);
         const lat = parseFloat(location.latitude);
         const locationId = location.id.toString();
-        const isFound = foundLocations.has(locationId);
+        // Use the ref to get the latest foundLocations
+        const isFound = foundLocationsRef.current.has(locationId);
         const shouldShow =
           enabledCategories.size === 0 || enabledCategories.has(location.category_id);
 
@@ -240,12 +266,20 @@ export default function MapView({
           const categoryId = parseInt(target.dataset.category || "0");
           const category = mapData.categories[categoryId];
           const locationId = target.dataset.id || "";
-          const currentFound = foundLocations.has(locationId);
+          // Use the refs to get current values
+          const currentFound = foundLocationsRef.current.has(locationId);
           const hasSelectedChar = selectedCharacterIdRef.current !== null;
 
-          // Format description with proper links
+          console.log(
+            "Popup opened - hasSelectedChar:",
+            hasSelectedChar,
+            "selectedCharacterId:",
+            selectedCharacterIdRef.current,
+            "currentFound:",
+            currentFound,
+          );
+
           const formatDescription = (text: string) => {
-            // Replace MapGenie URLs with internal links
             let formatted = text.replace(
               /\[([^\]]+)\]\(https:\/\/mapgenie\.io([^)]+)\)/g,
               (match, linkText, urlPath) => {
@@ -253,10 +287,7 @@ export default function MapView({
               },
             );
 
-            // Handle bold text
             formatted = formatted.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-
-            // Handle line breaks
             formatted = formatted.replace(/\n/g, "<br/>");
 
             return formatted;
@@ -283,7 +314,8 @@ export default function MapView({
           }
 
           // Add found checkbox if character is selected
-          if (hasSelectedChar && onFoundToggle) {
+          if (hasSelectedChar && onFoundToggleRef.current) {
+            console.log("Adding checkbox for location:", locationId, "currentFound:", currentFound);
             html += `
               <div class="popup-found">
                 <label class="found-checkbox">
@@ -314,19 +346,23 @@ export default function MapView({
             .addTo(map.current!);
 
           // Add checkbox handler
-          if (hasSelectedChar && onFoundToggle) {
+          if (hasSelectedChar && onFoundToggleRef.current) {
             const checkbox = document.querySelector(`.found-checkbox input`);
-            checkbox?.addEventListener("change", (e) => {
-              e.stopPropagation();
-              const input = e.target as HTMLInputElement;
-              const newFound = input.checked;
+            if (checkbox) {
+              checkbox.addEventListener("change", (e) => {
+                e.stopPropagation();
+                const input = e.target as HTMLInputElement;
+                const newFound = input.checked;
 
-              // Update marker class immediately (this doesn't cause a rerender)
-              target.classList.toggle("found", newFound);
+                console.log("Checkbox toggled:", locationId, newFound);
 
-              // Call the toggle handler (this updates state but won't rerender the map)
-              onFoundToggle(locationId, newFound);
-            });
+                // Update marker class immediately
+                target.classList.toggle("found", newFound);
+
+                // Call the toggle handler
+                onFoundToggleRef.current?.(locationId, newFound);
+              });
+            }
           }
 
           // Add link handlers
@@ -347,6 +383,8 @@ export default function MapView({
         markersRef.current.set(locationId, { marker, element: el });
       });
 
+      setMapReady(true);
+
       // Handle initial location if provided
       if (initialLocationId && !initialLocationHandled.current) {
         setTimeout(() => {
@@ -363,11 +401,11 @@ export default function MapView({
         map.current = null;
       }
       markersRef.current.clear();
+      setMapReady(false);
       initialLocationHandled.current = false;
     };
-    // Empty dependency array ensures this runs only once
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // Run once on mount
 
   return <div ref={mapContainer} className="absolute inset-0 w-full h-full" />;
 }
