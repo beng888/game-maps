@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: <> */
 "use client";
 
 import { useState, useRef, useEffect } from "react";

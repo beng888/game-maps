@@ -1,8 +1,8 @@
+/** biome-ignore-all assist/source/organizeImports: <> */
 import { db } from "./index";
 import { games, maps, users } from "./schema";
 import fs from "fs";
 import path from "path";
-import { eq } from "drizzle-orm";
 
 async function seed() {
   console.log("Seeding database...");

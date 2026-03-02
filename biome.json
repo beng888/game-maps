@@ -7,7 +7,13 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!node_modules", "!.next", "!dist", "!build"]
+    "includes": [
+      "**",
+      "!node_modules",
+      "!.next",
+      "!dist",
+      "!build"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -17,6 +23,9 @@
   "linter": {
     "enabled": true,
     "rules": {
+      "performance": {
+        "noImgElement": "off"
+      },
       "recommended": true,
       "suspicious": {
         "noUnknownAtRules": "off"

@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: <> */
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
@@ -25,14 +26,11 @@ interface MapViewProps {
 
 export default function MapView({
   mapData,
-  gameSlug,
   gameBounds,
   tileBaseUrl,
-  mapSlug,
   tilePath,
   mapCenter,
   mapZoom,
-  mapId,
   initialLocationId,
   foundLocations = new Set(),
   selectedCharacterId,
@@ -175,6 +173,7 @@ export default function MapView({
   );
 
   // Initialize map
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <>
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
@@ -210,7 +209,6 @@ export default function MapView({
       maxZoom: 15,
       minZoom: 8,
       renderWorldCopies: false,
-      preserveDrawingBuffer: true,
     });
 
     map.current.addControl(new maplibregl.NavigationControl(), "top-right");
@@ -282,7 +280,7 @@ export default function MapView({
           const formatDescription = (text: string) => {
             let formatted = text.replace(
               /\[([^\]]+)\]\(https:\/\/mapgenie\.io([^)]+)\)/g,
-              (match, linkText, urlPath) => {
+              (_, linkText, urlPath) => {
                 return `<a href="#" class="internal-link" data-href="https://mapgenie.io${urlPath}">${linkText}</a>`;
               },
             );
@@ -343,6 +341,7 @@ export default function MapView({
           })
             .setLngLat([lng, lat])
             .setHTML(html)
+            // biome-ignore lint/style/noNonNullAssertion: <>
             .addTo(map.current!);
 
           // Add checkbox handler
@@ -378,6 +377,7 @@ export default function MapView({
 
         const marker = new maplibregl.Marker({ element: el })
           .setLngLat([lng, lat])
+          // biome-ignore lint/style/noNonNullAssertion: <>
           .addTo(map.current!);
 
         markersRef.current.set(locationId, { marker, element: el });

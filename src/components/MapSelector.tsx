@@ -27,7 +27,7 @@ export default function MapSelector({ gameSlug, currentMapSlug, maps }: MapSelec
         onChange={(e) => {
           window.location.href = `/${gameSlug}/${e.target.value}`;
         }}
-        className="px-2 py-1 text-sm border rounded-md bg-white min-w-[120px]"
+        className="px-2 py-1 text-sm border rounded-md bg-white min-w-30"
       >
         {maps.map((map) => (
           <option key={map.id} value={map.slug}>

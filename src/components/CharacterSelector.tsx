@@ -27,6 +27,7 @@ export default function CharacterSelector({
   const [newCharName, setNewCharName] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <>
   useEffect(() => {
     console.log("CharacterSelector mounted, fetching characters...");
     fetchCharacters();
@@ -64,6 +65,7 @@ export default function CharacterSelector({
 
       // Explicitly type the filter and map
       const foundSet = new Set<string>(
+        // biome-ignore lint/suspicious/noExplicitAny: <>
         data.filter((f: any) => f.mapId === currentMapId).map((f: any) => f.locationId.toString()),
       );
 
@@ -148,7 +150,7 @@ export default function CharacterSelector({
           <select
             value={selectedCharId || ""}
             onChange={(e) => handleCharacterChange(e.target.value)}
-            className="px-2 py-1 text-sm border rounded-md bg-white min-w-[120px]"
+            className="px-2 py-1 text-sm border rounded-md bg-white min-w-30"
           >
             {characters.map((char) => (
               <option key={char.id} value={char.id}>
@@ -188,7 +190,6 @@ export default function CharacterSelector({
             placeholder="Name"
             className="px-2 py-1 text-sm border rounded-md w-24 md:w-32"
             onKeyDown={(e) => e.key === "Enter" && createCharacter()}
-            autoFocus
           />
           <button
             type="button"
