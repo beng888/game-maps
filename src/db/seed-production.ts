@@ -1,5 +1,5 @@
-/** biome-ignore-all lint/correctness/noUnusedImports: <explanation> */
-/** biome-ignore-all lint/correctness/noUnusedVariables: <explanation> */
+/** biome-ignore-all lint/correctness/noUnusedImports: <> */
+/** biome-ignore-all lint/correctness/noUnusedVariables: <> */
 import { db } from "./index";
 import { games, maps } from "./schema";
 import fs from "fs";
