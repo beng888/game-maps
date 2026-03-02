@@ -12,7 +12,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
-    "postinstall": "if [ \"$NODE_ENV\" != \"production\" ]; then npm run db:generate && npm run db:migrate && npm run db:seed; else npm run db:migrate; fi"
+    "postinstall": "if [ \"$NODE_ENV\" != \"production\" ]; then npm run db:generate && npm run db:migrate && npm run db:seed; else npm run db:migrate && npm run db:seed:prod; fi",
+    "db:seed:prod": "NODE_ENV=production tsx src/db/seed-production.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.1",

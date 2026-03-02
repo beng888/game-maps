@@ -1,10 +1,11 @@
 import type { Config } from "drizzle-kit";
+import path from "path";
 
 export default {
   schema: "./src/db/schema.ts",
   out: "./drizzle",
   dialect: "sqlite",
   dbCredentials: {
-    url: process.env.DATABASE_URL || "./src/db/sqlite.db",
+    url: path.join(process.cwd(), "data", "dev.sqlite.db"),
   },
 } satisfies Config;

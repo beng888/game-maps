@@ -36,9 +36,8 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
 
-# Reset and restart
-rm -rf .next
-rm src/db/sqlite.db
+# Reset and restart in local
+rm -rf .next drizzle src/db/*.db data/*.db
 npm run db:generate
 npm run db:migrate
 npm run db:seed

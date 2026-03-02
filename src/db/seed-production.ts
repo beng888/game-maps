@@ -3,17 +3,17 @@ import { games, maps } from "./schema";
 import fs from "fs";
 import path from "path";
 
-async function seed() {
-  console.log("Seeding database...");
+async function seedProduction() {
+  console.log("Checking if production seeding is needed...");
 
-  // Check if we already have games to avoid duplicate seeding
+  // Check if data already exists
   const existingGames = await db.select().from(games).limit(1);
   if (existingGames.length > 0) {
-    console.log("Games already exist, skipping seed...");
+    console.log("Database already has data, skipping seed.");
     return;
   }
 
-  console.log("Seeding game data...");
+  console.log("Seeding production database...");
 
   // Insert Fallout New Vegas
   const [falloutNV] = await db
@@ -81,7 +81,6 @@ async function seed() {
   for (const config of mapConfigs) {
     const dataPath = path.join(__dirname, "data", config.file);
 
-    // Check if file exists
     if (!fs.existsSync(dataPath)) {
       console.log(`Warning: Map data file ${config.file} not found, skipping...`);
       continue;
@@ -103,7 +102,7 @@ async function seed() {
     console.log(`Added map: ${config.name}`);
   }
 
-  console.log("Database seeded successfully!");
+  console.log("Production database seeded successfully!");
 }
 
-seed().catch(console.error);
+seedProduction().catch(console.error);
