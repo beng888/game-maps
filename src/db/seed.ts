@@ -1,16 +1,30 @@
 import { db } from "./index";
-import { games, maps } from "./schema";
+import { games, maps, users } from "./schema";
 import fs from "fs";
 import path from "path";
+import { eq } from "drizzle-orm";
 
 async function seed() {
   console.log("Seeding database...");
 
-  // Clear existing data
-  await db.delete(maps);
-  await db.delete(games);
+  // Check if we already have data to avoid duplicate seeding
+  const existingGames = await db.select().from(games).limit(1);
+  if (existingGames.length > 0) {
+    console.log("Database already seeded, skipping...");
+    return;
+  }
 
-  // Insert Fallout New Vegas with tile configuration
+  // First, check if we have any users (they should be created via OAuth)
+  const existingUsers = await db.select().from(users).limit(1);
+  if (existingUsers.length === 0) {
+    console.log("No users found. Please sign in first to create a user, then re-run seed.");
+    console.log("Skipping seed for now...");
+    return;
+  }
+
+  console.log("Seeding game data...");
+
+  // Insert Fallout New Vegas
   const [falloutNV] = await db
     .insert(games)
     .values({
@@ -75,6 +89,13 @@ async function seed() {
   // Insert each map with its data
   for (const config of mapConfigs) {
     const dataPath = path.join(__dirname, "data", config.file);
+
+    // Check if file exists
+    if (!fs.existsSync(dataPath)) {
+      console.log(`Warning: Map data file ${config.file} not found, skipping...`);
+      continue;
+    }
+
     const mapData = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
 
     await db.insert(maps).values({

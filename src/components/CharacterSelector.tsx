@@ -62,8 +62,8 @@ export default function CharacterSelector({
       const data = await res.json();
       console.log("Found locations loaded:", data);
 
-      // Filter for current map
-      const foundSet = new Set(
+      // Explicitly type the filter and map
+      const foundSet = new Set<string>(
         data.filter((f: any) => f.mapId === currentMapId).map((f: any) => f.locationId.toString()),
       );
 
@@ -71,7 +71,7 @@ export default function CharacterSelector({
       onFoundLocationsLoad(foundSet);
     } catch (error) {
       console.error("Failed to load found locations:", error);
-      onFoundLocationsLoad(new Set());
+      onFoundLocationsLoad(new Set<string>());
     }
   };
 
