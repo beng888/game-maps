@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/suspicious/noExplicitAny: <> */
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import Database from "better-sqlite3";
 import * as schema from "./schema";
@@ -24,7 +23,7 @@ export const db = drizzle(sqlite, { schema });
 // Test query to verify tables
 try {
   const result = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
-  console.log("📋 Tables in database:", result.map((t: any) => t.name).join(", "));
+  console.log("📋 Tables in database:", result.map((t) => t.name).join(", "));
 } catch (e) {
   console.log("❌ Could not query tables");
 }
