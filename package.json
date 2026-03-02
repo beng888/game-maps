@@ -8,18 +8,17 @@
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
-    "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
-    "postinstall": "NODE_ENV=production npm run db:migrate"
+    "postinstall": "if [ \"$NODE_ENV\" != \"production\" ]; then npm run db:generate && npm run db:migrate && npm run db:seed; else npm run db:migrate; fi"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.1",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.6.2",
     "drizzle-orm": "^0.45.1",
-    "drizzle-kit": "^0.31.9",
     "maplibre-gl": "^5.19.0",
     "next": "16.1.6",
     "next-auth": "^4.24.13",
@@ -37,6 +36,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
+    "drizzle-kit": "^0.31.9",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"

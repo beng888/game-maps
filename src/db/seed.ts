@@ -1,8 +1,8 @@
+/** biome-ignore-all assist/source/organizeImports: <> */
 import { db } from "./index";
 import { games, maps, users } from "./schema";
 import fs from "fs";
 import path from "path";
-import { eq } from "drizzle-orm";
 
 async function seed() {
   console.log("Seeding database...");
@@ -11,6 +11,14 @@ async function seed() {
   const existingGames = await db.select().from(games).limit(1);
   if (existingGames.length > 0) {
     console.log("Database already seeded, skipping...");
+    return;
+  }
+
+  // First, check if we have any users (they should be created via OAuth)
+  const existingUsers = await db.select().from(users).limit(1);
+  if (existingUsers.length === 0) {
+    console.log("No users found. Please sign in first to create a user, then re-run seed.");
+    console.log("Skipping seed for now...");
     return;
   }
 

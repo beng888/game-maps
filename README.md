@@ -37,7 +37,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 
 # Reset and restart
-rm -rf .next
+rm -rf .next drizzle
 rm src/db/sqlite.db
 npm run db:generate
 npm run db:migrate
