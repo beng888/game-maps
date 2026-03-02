@@ -31,9 +31,11 @@ export const accounts = sqliteTable("account", {
   session_state: text("session_state"),
 });
 
-// IMPORTANT: For NextAuth Drizzle Adapter, sessionToken MUST be the primary key
 export const sessions = sqliteTable("session", {
-  sessionToken: text("sessionToken").primaryKey(),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => uuidv4()),
+  sessionToken: text("sessionToken").notNull().unique(),
   userId: text("userId")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
