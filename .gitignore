@@ -46,3 +46,12 @@ next-env.d.ts
 *.sqlite
 *.sqlite3
 *.db-journal
+
+# Database
+src/db/sqlite.db
+*.db
+*.db-journal
+
+# Don't exclude the directory itself
+!src/db/
+!src/db/.gitkeep
