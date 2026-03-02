@@ -6,9 +6,6 @@ export default {
   out: "./drizzle",
   dialect: "sqlite",
   dbCredentials: {
-    url:
-      process.env.NODE_ENV === "production"
-        ? "/opt/render/project/src/data/sqlite.db"
-        : path.join(process.cwd(), "data", "dev.sqlite.db"),
+    url: path.join(process.cwd(), "data", "dev.sqlite.db"),
   },
 } satisfies Config;

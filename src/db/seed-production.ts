@@ -1,28 +1,19 @@
-/** biome-ignore-all lint/correctness/noUnusedImports: <explanation> */
-/** biome-ignore-all lint/correctness/noUnusedVariables: <explanation> */
 import { db } from "./index";
 import { games, maps } from "./schema";
 import fs from "fs";
 import path from "path";
-import { sql } from "drizzle-orm";
 
 async function seedProduction() {
-  console.log("🌱 Checking if production seeding is needed...");
+  console.log("Checking if production seeding is needed...");
 
-  try {
-    // Try to query games table to see if it exists
-    await db.select().from(games).limit(1);
-    console.log("✅ Tables already exist, skipping seed.");
+  // Check if data already exists
+  const existingGames = await db.select().from(games).limit(1);
+  if (existingGames.length > 0) {
+    console.log("Database already has data, skipping seed.");
     return;
-  } catch (error) {
-    console.log("⚠️ Tables not found, creating tables via seed...");
-
-    // If tables don't exist, we need to create them
-    // Note: This assumes migrations have already run
-    console.log("Running schema creation...");
   }
 
-  console.log("🌱 Seeding production database...");
+  console.log("Seeding production database...");
 
   // Insert Fallout New Vegas
   const [falloutNV] = await db
@@ -35,7 +26,7 @@ async function seedProduction() {
     })
     .returning();
 
-  console.log("✅ Added game:", falloutNV.name);
+  console.log("Added game:", falloutNV.name);
 
   // Map configurations
   const mapConfigs = [
@@ -48,14 +39,50 @@ async function seedProduction() {
       description: "The main desert region of the Mojave Wasteland",
       file: "mojave-wasteland.json",
     },
-    // ... add all other maps
+    {
+      slug: "sierra-madre",
+      name: "Sierra Madre",
+      tilePath: "fallout-new-vegas/sierra-madre/default-v1",
+      defaultCenter: JSON.stringify([-0.8593568483393, 0.71132050351143]),
+      defaultZoom: 10,
+      description: "The treacherous Sierra Madre casino and surrounding area",
+      file: "sierra-madre.json",
+    },
+    {
+      slug: "zion-canyon",
+      name: "Zion Canyon",
+      tilePath: "fallout-new-vegas/zion-canyon/default-v1",
+      defaultCenter: JSON.stringify([-0.80437288889794, 0.64827011938249]),
+      defaultZoom: 11,
+      description: "The beautiful and dangerous Zion National Park",
+      file: "zion-canyon.json",
+    },
+    {
+      slug: "big-mt",
+      name: "Big MT",
+      tilePath: "fallout-new-vegas/big-mt/default-v1",
+      defaultCenter: JSON.stringify([-0.82521207715246, 0.72249280811974]),
+      defaultZoom: 11,
+      description: "The Big Empty research facility",
+      file: "big-mt.json",
+    },
+    {
+      slug: "the-divide",
+      name: "The Divide",
+      tilePath: "fallout-new-vegas/the-divide/default-v1",
+      defaultCenter: JSON.stringify([-0.8043821638268, 0.74278153843068]),
+      defaultZoom: 12,
+      description: "The destructive and mysterious Divide",
+      file: "the-divide.json",
+    },
   ];
 
+  // Insert each map with its data
   for (const config of mapConfigs) {
     const dataPath = path.join(__dirname, "data", config.file);
 
     if (!fs.existsSync(dataPath)) {
-      console.log(`⚠️ Warning: Map data file ${config.file} not found, skipping...`);
+      console.log(`Warning: Map data file ${config.file} not found, skipping...`);
       continue;
     }
 
@@ -72,10 +99,10 @@ async function seedProduction() {
       mapData: JSON.stringify(mapData),
     });
 
-    console.log(`✅ Added map: ${config.name}`);
+    console.log(`Added map: ${config.name}`);
   }
 
-  console.log("✅ Production database seeded successfully!");
+  console.log("Production database seeded successfully!");
 }
 
 seedProduction().catch(console.error);
