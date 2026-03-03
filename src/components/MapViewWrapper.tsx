@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useSync } from "@/hooks/useSync";
 import MapView from "./MapView";
 import MapSelector from "./MapSelector";
 import CharacterSelector from "./CharacterSelector";
@@ -37,6 +39,10 @@ export default function MapViewWrapper({
   initialLocationId,
 }: MapViewWrapperProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const userId = session?.user?.email;
+  const sync = useSync();
+
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
   const [foundLocations, setFoundLocations] = useState<Set<string>>(new Set());
   const [enabledCategories, setEnabledCategories] = useState<Set<number>>(new Set());
@@ -61,7 +67,6 @@ export default function MapViewWrapper({
   };
 
   const handleFoundToggle = async (locationId: string, found: boolean) => {
-    // Use the ref instead of the state variable
     const currentCharId = selectedCharacterIdRef.current;
     console.log("handleFoundToggle - currentCharId from ref:", currentCharId);
 
@@ -70,7 +75,7 @@ export default function MapViewWrapper({
       return;
     }
 
-    // Update local state (this won't rerender the map because we use direct DOM manipulation)
+    // Update local state
     setFoundLocations((prev) => {
       const newSet = new Set(prev);
       if (found) {
@@ -80,6 +85,11 @@ export default function MapViewWrapper({
       }
       return newSet;
     });
+
+    // Save to localStorage as backup (if user is logged in)
+    if (userId) {
+      sync.saveFoundLocation(currentCharId, parseInt(locationId), mapId, found);
+    }
 
     // Save to database
     try {
@@ -111,6 +121,11 @@ export default function MapViewWrapper({
         }
         return newSet;
       });
+
+      // Also revert localStorage
+      if (userId) {
+        sync.saveFoundLocation(currentCharId, parseInt(locationId), mapId, !found);
+      }
     }
   };
 

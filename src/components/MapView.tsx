@@ -359,8 +359,13 @@ export default function MapView({
                 // Update marker class immediately
                 target.classList.toggle("found", newFound);
 
-                // Call the toggle handler
+                // Call the toggle handler (updates DB)
                 onFoundToggleRef.current?.(locationId, newFound);
+
+                // Also save to localStorage as backup
+                if (selectedCharacterIdRef.current) {
+                  // This will be handled by the onFoundToggle which should update localStorage
+                }
               });
             }
           }

@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useSync } from "@/hooks/useSync";
 
 interface Character {
   id: number;
   name: string;
   level: number;
+  gameId: number;
+  userId: string;
 }
 
 interface CharacterSelectorProps {
@@ -21,64 +25,133 @@ export default function CharacterSelector({
   onCharacterSelect,
   onFoundLocationsLoad,
 }: CharacterSelectorProps) {
+  const { data: session } = useSession();
+  const userId = session?.user?.email;
   const [characters, setCharacters] = useState<Character[]>([]);
   const [selectedCharId, setSelectedCharId] = useState<number | null>(null);
   const [showNewCharInput, setShowNewCharInput] = useState(false);
   const [newCharName, setNewCharName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [syncInProgress, setSyncInProgress] = useState(false);
 
+  const sync = useSync();
+
+  // Load characters on mount
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
-    console.log("CharacterSelector mounted, fetching characters...");
     fetchCharacters();
   }, []);
 
   const fetchCharacters = async () => {
     try {
+      setLoading(true);
       const res = await fetch("/api/characters");
       const data = await res.json();
-      console.log("Characters loaded:", data);
-      setCharacters(data);
-      if (data.length > 0) {
-        // Auto-select the first character
-        console.log("Auto-selecting character:", data[0].id);
-        setSelectedCharId(data[0].id);
-        onCharacterSelect(data[0].id);
-        await loadFoundLocations(data[0].id);
+
+      if (data.length === 0 && sync.hasLocalData() && userId) {
+        // Database is empty but we have local data - sync to DB
+        await syncToDatabase();
       } else {
-        onCharacterSelect(null);
-        onFoundLocationsLoad(new Set());
+        // Normal load - sync from DB to localStorage
+        setCharacters(data);
+        if (data.length > 0) {
+          setSelectedCharId(data[0].id);
+          onCharacterSelect(data[0].id);
+          loadFoundLocations(data[0].id);
+        } else {
+          onCharacterSelect(null);
+          onFoundLocationsLoad(new Set());
+        }
+
+        // Backup to localStorage
+        await sync.syncFromDB(data);
       }
     } catch (error) {
       console.error("Failed to load characters:", error);
+      // Try to load from localStorage as fallback
+      loadFromLocalStorage();
     } finally {
       setLoading(false);
     }
   };
 
+  const syncToDatabase = async () => {
+    setSyncInProgress(true);
+    try {
+      const syncedChars = await sync.syncToDB({
+        createCharacter: async (char) => {
+          const res = await fetch("/api/characters", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(char),
+          });
+          return res.json();
+        },
+        createFoundLocation: async (characterId, locationId, mapId) => {
+          await fetch(`/api/characters/${characterId}/found`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              locationId,
+              mapId,
+              found: true,
+            }),
+          });
+        },
+      });
+
+      setCharacters(syncedChars);
+      if (syncedChars.length > 0) {
+        setSelectedCharId(syncedChars[0].id);
+        onCharacterSelect(syncedChars[0].id);
+        loadFoundLocations(syncedChars[0].id);
+      }
+    } catch (error) {
+      console.error("Failed to sync to database:", error);
+    } finally {
+      setSyncInProgress(false);
+    }
+  };
+
+  const loadFromLocalStorage = () => {
+    const localChars = sync.getLocalCharacters();
+    if (localChars.length > 0) {
+      setCharacters(localChars);
+      setSelectedCharId(localChars[0].id);
+      onCharacterSelect(localChars[0].id);
+
+      // Load found locations for current map - fix the type
+      const foundSet: Set<string> = new Set(
+        localChars[0].foundLocations
+          .filter((f: any) => f.mapId === currentMapId)
+          .map((f: any) => f.locationId.toString()),
+      );
+      onFoundLocationsLoad(foundSet);
+    }
+  };
+
   const loadFoundLocations = async (charId: number) => {
     try {
-      console.log("Loading found locations for character:", charId, "map:", currentMapId);
       const res = await fetch(`/api/characters/${charId}/found`);
       const data = await res.json();
-      console.log("Found locations loaded:", data);
-
-      // Explicitly type the filter and map
-      const foundSet = new Set<string>(
+      const foundSet: Set<string> = new Set(
         data.filter((f: any) => f.mapId === currentMapId).map((f: any) => f.locationId.toString()),
       );
-
-      console.log("Filtered found locations for current map:", Array.from(foundSet));
       onFoundLocationsLoad(foundSet);
+
+      // Backup to localStorage
+      if (userId) {
+        for (const f of data) {
+          sync.saveFoundLocation(charId, f.locationId, f.mapId, true);
+        }
+      }
     } catch (error) {
       console.error("Failed to load found locations:", error);
-      onFoundLocationsLoad(new Set<string>());
     }
   };
 
   const handleCharacterChange = async (charId: string) => {
     const id = parseInt(charId);
-    console.log("Character selected:", id);
     setSelectedCharId(id);
     onCharacterSelect(id);
     await loadFoundLocations(id);
@@ -96,11 +169,19 @@ export default function CharacterSelector({
 
       if (res.ok) {
         const newChar = await res.json();
-        console.log("Character created:", newChar);
         setCharacters([...characters, newChar]);
         setSelectedCharId(newChar.id);
         onCharacterSelect(newChar.id);
-        await loadFoundLocations(newChar.id);
+
+        // Backup to localStorage
+        if (userId) {
+          sync.saveCharacter({
+            ...newChar,
+            foundLocations: [],
+          });
+        }
+
+        loadFoundLocations(newChar.id);
         setShowNewCharInput(false);
         setNewCharName("");
       }
@@ -121,11 +202,15 @@ export default function CharacterSelector({
         const newCharacters = characters.filter((c) => c.id !== charId);
         setCharacters(newCharacters);
 
+        // Remove from localStorage
+        if (userId) {
+          sync.deleteCharacter(charId);
+        }
+
         if (newCharacters.length > 0) {
-          // Select the first remaining character
           setSelectedCharId(newCharacters[0].id);
           onCharacterSelect(newCharacters[0].id);
-          await loadFoundLocations(newCharacters[0].id);
+          loadFoundLocations(newCharacters[0].id);
         } else {
           setSelectedCharId(null);
           onCharacterSelect(null);
@@ -137,8 +222,14 @@ export default function CharacterSelector({
     }
   };
 
-  if (loading) {
-    return <div className="text-sm text-gray-500 whitespace-nowrap">Loading...</div>;
+  if (loading || syncInProgress) {
+    return (
+      <div className="flex items-center gap-2">
+        <div className="text-sm text-gray-500 whitespace-nowrap">
+          {syncInProgress ? "Syncing backup..." : "Loading..."}
+        </div>
+      </div>
+    );
   }
 
   return (
