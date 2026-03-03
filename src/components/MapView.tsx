@@ -156,16 +156,27 @@ export default function MapView({
         const pathParts = url.pathname.split("/").filter(Boolean);
         const locationId = url.searchParams.get("locationIds");
 
+        console.log("Internal link clicked:", { pathParts, locationId });
+
         if (pathParts.length >= 3 && pathParts[1] === "maps") {
           const targetMapSlug = pathParts[2];
+          // Navigate to different map with locationId
           if (onNavigateToMap) {
             onNavigateToMap(targetMapSlug, locationId || undefined);
           }
           return;
         }
 
+        // Same map location link
         if (locationId && map.current) {
+          console.log("📍 Focusing on same-map location:", locationId);
+          // Just focus on the location without changing URL
           focusOnLocation(locationId);
+
+          // Optional: Update URL to reflect locationId without reload
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.set("locationIds", locationId);
+          window.history.pushState({}, "", newUrl);
         }
       } catch (error) {
         console.error("Error handling internal link:", error);
@@ -173,6 +184,20 @@ export default function MapView({
     },
     [onNavigateToMap, focusOnLocation],
   );
+
+  useEffect(() => {
+    if (!mapReady || !initialLocationId || !map.current) {
+      console.log("Map not ready or no locationId, skipping focus");
+      return;
+    }
+
+    console.log("📍 URL locationId changed, focusing on:", initialLocationId);
+
+    // Small delay to ensure map is stable
+    setTimeout(() => {
+      focusOnLocation(initialLocationId);
+    }, 500);
+  }, [initialLocationId, mapReady, focusOnLocation]);
 
   // Initialize map
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
