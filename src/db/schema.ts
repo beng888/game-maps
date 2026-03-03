@@ -92,7 +92,6 @@ export const foundLocations = sqliteTable("found_locations", {
   mapId: integer("mapId")
     .notNull()
     .references(() => maps.id),
-  foundAt: integer("foundAt", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Unique constraint to prevent duplicates

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useSync } from "@/hooks/useSync";
 
@@ -15,7 +15,7 @@ interface Character {
 interface CharacterSelectorProps {
   gameId: number;
   currentMapId: number;
-  onCharacterSelect: (characterId: number | null) => void;
+  onCharacterSelect: (characterId: number | null, characterName?: string) => void;
   onFoundLocationsLoad: (foundSet: Set<string>) => void;
 }
 
@@ -26,9 +26,9 @@ export default function CharacterSelector({
   onFoundLocationsLoad,
 }: CharacterSelectorProps) {
   const { data: session } = useSession();
-  const userId = session?.user?.email;
+  const email = session?.user?.email;
   const [characters, setCharacters] = useState<Character[]>([]);
-  const [selectedCharId, setSelectedCharId] = useState<number | null>(null);
+  const [selectedCharName, setSelectedCharName] = useState<string | null>(null);
   const [showNewCharInput, setShowNewCharInput] = useState(false);
   const [newCharName, setNewCharName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -48,16 +48,34 @@ export default function CharacterSelector({
       const res = await fetch("/api/characters");
       const data = await res.json();
 
-      if (data.length === 0 && sync.hasLocalData() && userId) {
+      if (data.length === 0 && sync.hasLocalData() && email) {
         // Database is empty but we have local data - sync to DB
         await syncToDatabase();
       } else {
         // Normal load - sync from DB to localStorage
         setCharacters(data);
-        if (data.length > 0) {
-          setSelectedCharId(data[0].id);
-          onCharacterSelect(data[0].id);
-          loadFoundLocations(data[0].id);
+
+        // Try to restore selected character from localStorage
+        const localChars = sync.getLocalCharacters();
+        if (localChars.length > 0 && data.length > 0) {
+          // Match by name
+          const matchingChar = data.find((dbChar: Character) =>
+            localChars.some((lc) => lc.name.toLowerCase() === dbChar.name.toLowerCase()),
+          );
+
+          if (matchingChar) {
+            setSelectedCharName(matchingChar.name);
+            onCharacterSelect(matchingChar.id, matchingChar.name);
+            loadFoundLocations(matchingChar.id, matchingChar.name);
+          } else {
+            setSelectedCharName(data[0].name);
+            onCharacterSelect(data[0].id, data[0].name);
+            loadFoundLocations(data[0].id, data[0].name);
+          }
+        } else if (data.length > 0) {
+          setSelectedCharName(data[0].name);
+          onCharacterSelect(data[0].id, data[0].name);
+          loadFoundLocations(data[0].id, data[0].name);
         } else {
           onCharacterSelect(null);
           onFoundLocationsLoad(new Set());
@@ -79,11 +97,18 @@ export default function CharacterSelector({
     setSyncInProgress(true);
     try {
       const syncedChars = await sync.syncToDB({
+        findCharacterByName: async (name) => {
+          const res = await fetch(
+            `/api/characters/find?name=${encodeURIComponent(name)}&gameId=${gameId}`,
+          );
+          if (res.status === 404) return null;
+          return res.json();
+        },
         createCharacter: async (char) => {
           const res = await fetch("/api/characters", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(char),
+            body: JSON.stringify({ ...char, gameId }),
           });
           return res.json();
         },
@@ -102,9 +127,9 @@ export default function CharacterSelector({
 
       setCharacters(syncedChars);
       if (syncedChars.length > 0) {
-        setSelectedCharId(syncedChars[0].id);
-        onCharacterSelect(syncedChars[0].id);
-        loadFoundLocations(syncedChars[0].id);
+        setSelectedCharName(syncedChars[0].name);
+        onCharacterSelect(syncedChars[0].id, syncedChars[0].name);
+        loadFoundLocations(syncedChars[0].id, syncedChars[0].name);
       }
     } catch (error) {
       console.error("Failed to sync to database:", error);
@@ -116,21 +141,30 @@ export default function CharacterSelector({
   const loadFromLocalStorage = () => {
     const localChars = sync.getLocalCharacters();
     if (localChars.length > 0) {
-      setCharacters(localChars);
-      setSelectedCharId(localChars[0].id);
-      onCharacterSelect(localChars[0].id);
+      // Convert LocalCharacter to Character format for display
+      const displayChars = localChars.map((lc) => ({
+        id: lc.id,
+        name: lc.name,
+        level: lc.level,
+        gameId: lc.gameId,
+        userId: lc.userId,
+      }));
 
-      // Load found locations for current map - fix the type
+      setCharacters(displayChars);
+      setSelectedCharName(localChars[0].name);
+      onCharacterSelect(localChars[0].id, localChars[0].name);
+
+      // Load found locations for current map
       const foundSet: Set<string> = new Set(
         localChars[0].foundLocations
-          .filter((f: any) => f.mapId === currentMapId)
-          .map((f: any) => f.locationId.toString()),
+          .filter((f) => f.mapId === currentMapId)
+          .map((f) => f.locationId.toString()),
       );
       onFoundLocationsLoad(foundSet);
     }
   };
 
-  const loadFoundLocations = async (charId: number) => {
+  const loadFoundLocations = async (charId: number, charName: string) => {
     try {
       const res = await fetch(`/api/characters/${charId}/found`);
       const data = await res.json();
@@ -140,9 +174,9 @@ export default function CharacterSelector({
       onFoundLocationsLoad(foundSet);
 
       // Backup to localStorage
-      if (userId) {
+      if (email) {
         for (const f of data) {
-          sync.saveFoundLocation(charId, f.locationId, f.mapId, true);
+          sync.saveFoundLocation(charName, f.locationId, f.mapId, true);
         }
       }
     } catch (error) {
@@ -150,11 +184,13 @@ export default function CharacterSelector({
     }
   };
 
-  const handleCharacterChange = async (charId: string) => {
-    const id = parseInt(charId);
-    setSelectedCharId(id);
-    onCharacterSelect(id);
-    await loadFoundLocations(id);
+  const handleCharacterChange = async (charName: string) => {
+    const selectedChar = characters.find((c) => c.name === charName);
+    if (!selectedChar) return;
+
+    setSelectedCharName(charName);
+    onCharacterSelect(selectedChar.id, charName);
+    await loadFoundLocations(selectedChar.id, charName);
   };
 
   const createCharacter = async () => {
@@ -170,18 +206,23 @@ export default function CharacterSelector({
       if (res.ok) {
         const newChar = await res.json();
         setCharacters([...characters, newChar]);
-        setSelectedCharId(newChar.id);
-        onCharacterSelect(newChar.id);
+        setSelectedCharName(newChar.name);
+        onCharacterSelect(newChar.id, newChar.name);
 
         // Backup to localStorage
-        if (userId) {
+        if (email) {
           sync.saveCharacter({
-            ...newChar,
+            id: newChar.id,
+            userId: email,
+            gameId: newChar.gameId,
+            name: newChar.name,
+            level: newChar.level,
+            createdAt: new Date().toISOString(),
             foundLocations: [],
           });
         }
 
-        loadFoundLocations(newChar.id);
+        loadFoundLocations(newChar.id, newChar.name);
         setShowNewCharInput(false);
         setNewCharName("");
       }
@@ -190,29 +231,32 @@ export default function CharacterSelector({
     }
   };
 
-  const deleteCharacter = async (charId: number) => {
-    if (!confirm("Delete this character? All progress will be lost.")) return;
+  const deleteCharacter = async (charName: string) => {
+    const character = characters.find((c) => c.name === charName);
+    if (!character) return;
+
+    if (!confirm(`Delete "${charName}"? All progress will be lost.`)) return;
 
     try {
-      const res = await fetch(`/api/characters/${charId}`, {
+      const res = await fetch(`/api/characters/${character.id}`, {
         method: "DELETE",
       });
 
       if (res.ok) {
-        const newCharacters = characters.filter((c) => c.id !== charId);
+        const newCharacters = characters.filter((c) => c.id !== character.id);
         setCharacters(newCharacters);
 
         // Remove from localStorage
-        if (userId) {
-          sync.deleteCharacter(charId);
+        if (email) {
+          sync.deleteCharacter(charName);
         }
 
         if (newCharacters.length > 0) {
-          setSelectedCharId(newCharacters[0].id);
-          onCharacterSelect(newCharacters[0].id);
-          loadFoundLocations(newCharacters[0].id);
+          setSelectedCharName(newCharacters[0].name);
+          onCharacterSelect(newCharacters[0].id, newCharacters[0].name);
+          loadFoundLocations(newCharacters[0].id, newCharacters[0].name);
         } else {
-          setSelectedCharId(null);
+          setSelectedCharName(null);
           onCharacterSelect(null);
           onFoundLocationsLoad(new Set());
         }
@@ -238,20 +282,20 @@ export default function CharacterSelector({
       {characters.length > 0 ? (
         <>
           <select
-            value={selectedCharId || ""}
+            value={selectedCharName || ""}
             onChange={(e) => handleCharacterChange(e.target.value)}
             className="px-2 py-1 text-sm border rounded-md bg-white min-w-[120px]"
           >
             {characters.map((char) => (
-              <option key={char.id} value={char.id}>
+              <option key={char.id} value={char.name}>
                 {char.name} (Lvl {char.level})
               </option>
             ))}
           </select>
-          {selectedCharId && (
+          {selectedCharName && (
             <button
               type="button"
-              onClick={() => deleteCharacter(selectedCharId)}
+              onClick={() => deleteCharacter(selectedCharName)}
               className="px-2 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 whitespace-nowrap"
               title="Delete character"
             >

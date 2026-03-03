@@ -1,3 +1,4 @@
+// src/components/MapViewWrapper.tsx
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -40,23 +41,30 @@ export default function MapViewWrapper({
 }: MapViewWrapperProps) {
   const router = useRouter();
   const { data: session } = useSession();
-  const userId = session?.user?.email;
+  const email = session?.user?.email;
   const sync = useSync();
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
+  const [selectedCharacterName, setSelectedCharacterName] = useState<string | null>(null);
   const [foundLocations, setFoundLocations] = useState<Set<string>>(new Set());
   const [enabledCategories, setEnabledCategories] = useState<Set<number>>(new Set());
   const [showOnlyUndiscovered, setShowOnlyUndiscovered] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Use a ref to always have the latest value
+  // Use refs to always have the latest values
   const selectedCharacterIdRef = useRef(selectedCharacterId);
+  const selectedCharacterNameRef = useRef(selectedCharacterName);
 
-  // Update the ref whenever selectedCharacterId changes
+  // Update the refs whenever values change
   useEffect(() => {
     console.log("selectedCharacterId changed:", selectedCharacterId);
     selectedCharacterIdRef.current = selectedCharacterId;
   }, [selectedCharacterId]);
+
+  useEffect(() => {
+    console.log("selectedCharacterName changed:", selectedCharacterName);
+    selectedCharacterNameRef.current = selectedCharacterName;
+  }, [selectedCharacterName]);
 
   const handleNavigateToMap = (targetMapSlug: string, locationId?: string) => {
     const url = locationId
@@ -68,9 +76,16 @@ export default function MapViewWrapper({
 
   const handleFoundToggle = async (locationId: string, found: boolean) => {
     const currentCharId = selectedCharacterIdRef.current;
-    console.log("handleFoundToggle - currentCharId from ref:", currentCharId);
+    const currentCharName = selectedCharacterNameRef.current;
 
-    if (!currentCharId) {
+    console.log(
+      "handleFoundToggle - currentCharId:",
+      currentCharId,
+      "currentCharName:",
+      currentCharName,
+    );
+
+    if (!currentCharId || !currentCharName) {
       console.log("No character selected, ignoring toggle");
       return;
     }
@@ -86,9 +101,9 @@ export default function MapViewWrapper({
       return newSet;
     });
 
-    // Save to localStorage as backup
-    if (userId) {
-      sync.saveFoundLocation(currentCharId, parseInt(locationId), mapId, found);
+    // Save to localStorage as backup (using character name)
+    if (email) {
+      sync.saveFoundLocation(currentCharName, parseInt(locationId), mapId, found);
     }
 
     // Save to database
@@ -123,10 +138,15 @@ export default function MapViewWrapper({
       });
 
       // Also revert localStorage
-      if (userId) {
-        sync.saveFoundLocation(currentCharId, parseInt(locationId), mapId, !found);
+      if (email) {
+        sync.saveFoundLocation(currentCharName, parseInt(locationId), mapId, !found);
       }
     }
+  };
+
+  const handleCharacterSelect = (characterId: number | null, characterName?: string) => {
+    setSelectedCharacterId(characterId);
+    setSelectedCharacterName(characterName || null);
   };
 
   return (
@@ -178,7 +198,7 @@ export default function MapViewWrapper({
           <CharacterSelector
             gameId={gameId}
             currentMapId={mapId}
-            onCharacterSelect={setSelectedCharacterId}
+            onCharacterSelect={handleCharacterSelect}
             onFoundLocationsLoad={setFoundLocations}
           />
 

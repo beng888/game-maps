@@ -30,7 +30,6 @@ CREATE TABLE `found_locations` (
 	`characterId` integer NOT NULL,
 	`locationId` integer NOT NULL,
 	`mapId` integer NOT NULL,
-	`foundAt` integer DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY (`characterId`) REFERENCES `characters`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`mapId`) REFERENCES `maps`(`id`) ON UPDATE no action ON DELETE no action
 );
