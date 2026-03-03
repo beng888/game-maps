@@ -12,12 +12,20 @@ interface CategoryFilterProps {
     }>;
   }>;
   onFilterChange: (enabledCategories: Set<number>) => void;
+  showUndiscovered?: boolean;
+  onUndiscoveredChange?: (showUndiscovered: boolean) => void;
 }
 
-export default function CategoryFilter({ groups, onFilterChange }: CategoryFilterProps) {
+export default function CategoryFilter({
+  groups,
+  onFilterChange,
+  showUndiscovered = false,
+  onUndiscoveredChange,
+}: CategoryFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<Set<number>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
+  const [showOnlyUndiscovered, setShowOnlyUndiscovered] = useState(showUndiscovered);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -32,6 +40,11 @@ export default function CategoryFilter({ groups, onFilterChange }: CategoryFilte
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Update local state when prop changes
+  useEffect(() => {
+    setShowOnlyUndiscovered(showUndiscovered);
+  }, [showUndiscovered]);
+
   const toggleCategory = (categoryId: number) => {
     const newSelected = new Set(selectedCategories);
     if (newSelected.has(categoryId)) {
@@ -43,9 +56,21 @@ export default function CategoryFilter({ groups, onFilterChange }: CategoryFilte
     onFilterChange(newSelected);
   };
 
+  const toggleUndiscovered = () => {
+    const newValue = !showOnlyUndiscovered;
+    setShowOnlyUndiscovered(newValue);
+    if (onUndiscoveredChange) {
+      onUndiscoveredChange(newValue);
+    }
+  };
+
   const clearFilters = () => {
     setSelectedCategories(new Set());
     onFilterChange(new Set());
+    setShowOnlyUndiscovered(false);
+    if (onUndiscoveredChange) {
+      onUndiscoveredChange(false);
+    }
     setIsOpen(false);
   };
 
@@ -78,17 +103,24 @@ export default function CategoryFilter({ groups, onFilterChange }: CategoryFilte
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`px-3 py-1.5 text-sm rounded-md flex items-center gap-2 ${
-          selectedCount > 0 && selectedCount < totalCategories
-            ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-            : selectedCount === totalCategories
-              ? "bg-green-100 text-green-800 hover:bg-green-200"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+        className={`px-3 py-1.5 text-sm rounded-md flex items-center gap-2 whitespace-nowrap ${
+          showOnlyUndiscovered
+            ? "bg-purple-100 text-purple-800 hover:bg-purple-200"
+            : selectedCount > 0 && selectedCount < totalCategories
+              ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+              : selectedCount === totalCategories
+                ? "bg-green-100 text-green-800 hover:bg-green-200"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
         }`}
       >
         <span>🔍</span>
-        <span>Categories</span>
-        {selectedCount > 0 && (
+        <span>Filter</span>
+        {showOnlyUndiscovered && (
+          <span className="ml-1 px-1.5 py-0.5 text-xs bg-purple-200 rounded-full">
+            Undiscovered
+          </span>
+        )}
+        {!showOnlyUndiscovered && selectedCount > 0 && (
           <span className="ml-1 px-1.5 py-0.5 text-xs bg-white rounded-full">{selectedCount}</span>
         )}
       </button>
@@ -106,6 +138,25 @@ export default function CategoryFilter({ groups, onFilterChange }: CategoryFilte
           </div>
 
           <div className="flex-1 overflow-y-auto p-2">
+            {/* Undiscovered filter - always first */}
+            <div className="mb-4 pb-2 border-b border-gray-200">
+              <label className="flex items-center gap-3 px-2 py-2 hover:bg-gray-50 rounded cursor-pointer text-sm font-medium">
+                <input
+                  type="checkbox"
+                  checked={showOnlyUndiscovered}
+                  onChange={toggleUndiscovered}
+                  className="rounded text-purple-500 focus:ring-purple-500 w-4 h-4"
+                />
+                <span className="flex items-center gap-2">
+                  <span className="text-lg">🕵️</span>
+                  <span>Hide discovered locations</span>
+                </span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1 ml-9">
+                Only show locations you haven't found yet
+              </p>
+            </div>
+
             {filteredGroups.map((group) => (
               <div key={group.id} className="mb-3">
                 <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2 px-2">
@@ -137,14 +188,14 @@ export default function CategoryFilter({ groups, onFilterChange }: CategoryFilte
               onClick={clearFilters}
               className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded"
             >
-              Clear
+              Clear All
             </button>
             <button
               type="button"
               onClick={selectAll}
               className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
             >
-              Select All
+              Select All Categories
             </button>
           </div>
         </div>

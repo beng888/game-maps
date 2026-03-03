@@ -21,6 +21,7 @@ interface MapViewProps {
   enabledCategories?: Set<number>;
   onFoundToggle?: (locationId: string, found: boolean) => void;
   onNavigateToMap?: (targetMapSlug: string, locationId?: string) => void;
+  showOnlyUndiscovered?: boolean;
 }
 
 export default function MapView({
@@ -39,6 +40,7 @@ export default function MapView({
   enabledCategories = new Set(),
   onFoundToggle,
   onNavigateToMap,
+  showOnlyUndiscovered,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -198,6 +200,34 @@ export default function MapView({
       focusOnLocation(initialLocationId);
     }, 500);
   }, [initialLocationId, mapReady, focusOnLocation]);
+
+  useEffect(() => {
+    if (!mapReady || markersRef.current.size === 0) return;
+
+    console.log("Updating marker visibility:", {
+      enabledCategories: enabledCategories.size,
+      showOnlyUndiscovered,
+      foundLocations: foundLocations.size,
+    });
+
+    markersRef.current.forEach(({ element }, locationId) => {
+      const location = mapData.locations.find((l: any) => l.id.toString() === locationId);
+      if (!location) return;
+
+      // Check category filter
+      const passesCategoryFilter =
+        enabledCategories.size === 0 || enabledCategories.has(location.category_id);
+
+      // Check undiscovered filter (if enabled)
+      const isFound = foundLocations.has(locationId);
+      const passesUndiscoveredFilter = !showOnlyUndiscovered || !isFound;
+
+      // Show marker only if it passes BOTH filters
+      const shouldShow = passesCategoryFilter && passesUndiscoveredFilter;
+
+      element.style.display = shouldShow ? "flex" : "none";
+    });
+  }, [enabledCategories, showOnlyUndiscovered, foundLocations, mapData.locations, mapReady]);
 
   // Initialize map
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>

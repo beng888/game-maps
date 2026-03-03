@@ -46,6 +46,7 @@ export default function MapViewWrapper({
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
   const [foundLocations, setFoundLocations] = useState<Set<string>>(new Set());
   const [enabledCategories, setEnabledCategories] = useState<Set<number>>(new Set());
+  const [showOnlyUndiscovered, setShowOnlyUndiscovered] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Use a ref to always have the latest value
@@ -62,7 +63,6 @@ export default function MapViewWrapper({
       ? `/${gameSlug}/${targetMapSlug}?locationIds=${locationId}`
       : `/${gameSlug}/${targetMapSlug}`;
     router.push(url);
-    // Close menu on mobile after navigation
     setIsMenuOpen(false);
   };
 
@@ -86,7 +86,7 @@ export default function MapViewWrapper({
       return newSet;
     });
 
-    // Save to localStorage as backup (if user is logged in)
+    // Save to localStorage as backup
     if (userId) {
       sync.saveFoundLocation(currentCharId, parseInt(locationId), mapId, found);
     }
@@ -164,7 +164,7 @@ export default function MapViewWrapper({
         </svg>
       </button>
 
-      {/* Top toolbar - hidden on mobile by default, shown when menu is open */}
+      {/* Top toolbar */}
       <div
         className={`
           absolute p-4 top-0 left-0 right-0 z-10 bg-white shadow-lg
@@ -183,7 +183,12 @@ export default function MapViewWrapper({
           />
 
           <div className="md:ml-auto flex items-center gap-1">
-            <CategoryFilter groups={mapData?.groups || []} onFilterChange={setEnabledCategories} />
+            <CategoryFilter
+              groups={mapData?.groups || []}
+              onFilterChange={setEnabledCategories}
+              showUndiscovered={showOnlyUndiscovered}
+              onUndiscoveredChange={setShowOnlyUndiscovered}
+            />
             <MapSelector gameSlug={gameSlug} currentMapSlug={mapSlug} maps={gameMaps} />
           </div>
         </div>
@@ -204,6 +209,7 @@ export default function MapViewWrapper({
         foundLocations={foundLocations}
         selectedCharacterId={selectedCharacterId}
         enabledCategories={enabledCategories}
+        showOnlyUndiscovered={showOnlyUndiscovered}
         onFoundToggle={handleFoundToggle}
         onNavigateToMap={handleNavigateToMap}
       />
