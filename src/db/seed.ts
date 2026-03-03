@@ -1,30 +1,25 @@
 import { db } from "./index";
-import { games, maps, users } from "./schema";
+import { games, maps } from "./schema";
 import fs from "fs";
 import path from "path";
-import { eq } from "drizzle-orm";
 
 async function seed() {
+  console.log("🌱 Starting database seeding...");
+
+  // Check if games already exist
+  const existingGames = await db.select().from(games);
+  if (existingGames.length > 0) {
+    console.log("📦 Games already exist, skipping seed");
+    return;
+  }
+
   console.log("Seeding database...");
 
-  // Check if we already have data to avoid duplicate seeding
-  const existingGames = await db.select().from(games).limit(1);
-  if (existingGames.length > 0) {
-    console.log("Database already seeded, skipping...");
-    return;
-  }
+  // Clear existing data (only if empty)
+  await db.delete(maps);
+  await db.delete(games);
 
-  // First, check if we have any users (they should be created via OAuth)
-  const existingUsers = await db.select().from(users).limit(1);
-  if (existingUsers.length === 0) {
-    console.log("No users found. Please sign in first to create a user, then re-run seed.");
-    console.log("Skipping seed for now...");
-    return;
-  }
-
-  console.log("Seeding game data...");
-
-  // Insert Fallout New Vegas
+  // Insert Fallout New Vegas with tile configuration
   const [falloutNV] = await db
     .insert(games)
     .values({
@@ -35,7 +30,7 @@ async function seed() {
     })
     .returning();
 
-  console.log("Added game:", falloutNV.name);
+  console.log("✅ Added game:", falloutNV.name);
 
   // Map configurations
   const mapConfigs = [
@@ -88,31 +83,29 @@ async function seed() {
 
   // Insert each map with its data
   for (const config of mapConfigs) {
-    const dataPath = path.join(__dirname, "data", config.file);
+    try {
+      const dataPath = path.join(__dirname, "data", config.file);
+      console.log(`📖 Reading ${config.file}...`);
+      const mapData = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
 
-    // Check if file exists
-    if (!fs.existsSync(dataPath)) {
-      console.log(`Warning: Map data file ${config.file} not found, skipping...`);
-      continue;
+      await db.insert(maps).values({
+        gameId: falloutNV.id,
+        name: config.name,
+        slug: config.slug,
+        description: config.description,
+        tilePath: config.tilePath,
+        defaultCenter: config.defaultCenter,
+        defaultZoom: config.defaultZoom,
+        mapData: JSON.stringify(mapData),
+      });
+
+      console.log(`✅ Added map: ${config.name}`);
+    } catch (error) {
+      console.error(`❌ Error adding map ${config.name}:`, error);
     }
-
-    const mapData = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
-
-    await db.insert(maps).values({
-      gameId: falloutNV.id,
-      name: config.name,
-      slug: config.slug,
-      description: config.description,
-      tilePath: config.tilePath,
-      defaultCenter: config.defaultCenter,
-      defaultZoom: config.defaultZoom,
-      mapData: JSON.stringify(mapData),
-    });
-
-    console.log(`Added map: ${config.name}`);
   }
 
-  console.log("Database seeded successfully!");
+  console.log("🎉 Database seeded successfully!");
 }
 
 seed().catch(console.error);
